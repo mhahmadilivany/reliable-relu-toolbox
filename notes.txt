@@ -1,0 +1,3 @@
+k negative larger is better than negative smaller in fitact (neuron-fixed)
+fit act neuron  use 4e-9 , 0.01 
+fit act layer use  4e-5 , 0.1 

@@ -22,8 +22,8 @@ class bounded_relu_alpha_learn(Function):
        output = torch.ones_like(inputs) * inputs 
        index_g = torch.where(torch.gt(output,bounds))
        index_i = torch.where(torch.logical_and(torch.lt(output,bounds),torch.gt(output,torch.tensor(0.0))))
-       output[index_g] = torch.tensor(0.0)
-       output[index_i] = alpha * output[index_i]
+       output[index_g] = tresh[index_g[1:]]
+       output[index_i] = alpha[index_i[1:]] * output[index_i]
        return torch.maximum(torch.tensor(0.0),output)
     @staticmethod
     def backward(ctx, grad_output):
@@ -40,14 +40,11 @@ class bounded_relu_alpha_learn(Function):
         grad_input[index_g] = torch.tensor(0.0)
         grad_alpha[index_l] = torch.tensor(0.0)
         grad_alpha[index_g] = torch.tensor(0.0)
-        grad_input[index_i] =  ctx.alpha * grad_input[index_i]
+        grad_input[index_i] =  ctx.alpha[index_i[1:]] * grad_input[index_i]
         grad_alpha[index_i] =  grad_alpha[index_i] * inputs[index_i]
         # print(grad_input.max())
         # print(grad_alpha.max())
         return grad_input, grad_bounds,grad_tresh,grad_alpha
-
-
-
 
 
 # class bounded_relu_alpha(nn.Module,Relu_bound): 
@@ -58,7 +55,7 @@ class bounded_relu_alpha_learn(Function):
 #         alpha={}
 #         param_name= "alpha"
 #         if alpha_param ==None:
-#             alpha[param_name] = nn.Parameter(data=torch.rand_like(bounds).cuda(), requires_grad=True)  
+#             alpha[param_name] = nn.Parameter(data=torch.ones_like(bounds).cuda(), requires_grad=True)  
 #         else:
 #             alpha[param_name] = nn.Parameter(data=alpha_param.cuda(), requires_grad=True)    
 #         for name, param in alpha.items():
@@ -71,28 +68,19 @@ class bounded_relu_alpha(nn.Module,Relu_bound):
         super().__init__()
         bounds_param={}
         param_name1= "bounds_param"
-        alpha={}
-        param_name= "alpha"
         self.tresh = tresh
         if tresh ==None:
-            bounds_param[param_name1] = nn.Parameter(data=torch.rand_like(bounds).cuda(), requires_grad=True) 
+            bounds_param[param_name1] = nn.Parameter(data=torch.zeros_like(bounds).cuda(), requires_grad=True) 
         else:
             bounds_param[param_name1] = nn.Parameter(data=bounds.cuda(), requires_grad=True) 
           
-        if alpha_param ==None:
-            alpha[param_name] = nn.Parameter(data=torch.rand_like(bounds).cuda(), requires_grad=True)  
-        else:
-            alpha[param_name] = nn.Parameter(data=alpha_param.cuda(), requires_grad=True) 
         self.k = k 
         for name, param in bounds_param.items():
-            self.register_parameter(name, param) 
-        for name, param in alpha.items():
-            self.register_parameter(name, param) 
-        self.alpha =    self.__getattr__("alpha")    
-        self.bounds =  self.__getattr__("bounds_param")   
+            self.register_parameter(name, param)   
+        self.bounds =  self.__getattr__("bounds_param")  
     def forward(self,input):
         # input = torch.nan_to_num(input)
-        output =self.__getattr__("alpha") * (input - input * torch.sigmoid(-self.k * (input-self.__getattr__("bounds_param"))))
+        output =   input - input * torch.sigmoid(-self.k* (input-self.__getattr__("bounds_param"))) # + self.__getattr__("bounds_param")
         # print(output)
         return torch.maximum(torch.tensor(0.0),output)   
 

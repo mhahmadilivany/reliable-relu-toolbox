@@ -5,6 +5,7 @@ import torch.optim as optim
 import torchvision.transforms as transforms
 import torch.nn as nn
 import math
+from relu_bound.bound_relu import Relu_bound
 from typing import Any, Callable, List, Optional, Type,Union
 import torch.nn.functional as F
 import numpy
@@ -15,7 +16,12 @@ class VGG(nn.Module):
     def __init__(self, n_classes=10,dropout_rate=0.0,features=None):
         super(VGG, self).__init__()
         self.features = features
-        self.classifier = nn.Linear(512, 10)
+        self.linear1 = nn.Linear(512, n_classes)
+        # self.relu1 = nn.ReLU()
+        # self.linear2 = nn.Linear(512, 512)
+        # self.relu2_last= nn.ReLU()
+        # self.linear3 = nn.Linear(512, n_classes)
+        # self.relu = nn.ReLU()
          # Initialize weights
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -27,13 +33,22 @@ class VGG(nn.Module):
     def forward(self, x):
         x = self.features(x)
         x = x.view(x.size(0), -1)
-        logits = self.classifier(x)
+        logits = self.linear1(x)
+        # x = self.relu1(x)
+        # x = self.linear2(x)
+        # x = self.relu2_last(x)
+        # logits = self.linear3(x)
+       
         return logits
     def extract_feature(self, x, preReLU=False):
 
         feat1 = self.features(x)
         x = x.view(x.size(0), -1)
-        out = self.classifier(x)
+        out = self.linear1(x)
+        # feat2 = self.relu1(x)
+        # x = self.linear2(feat2)
+        # feat3 = self.relu2_last(x)
+        return [feat1], out
 
         if not preReLU:
             feat1 = F.relu(feat1)

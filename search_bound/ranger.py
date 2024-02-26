@@ -20,7 +20,7 @@ def relu_hooks(model:nn.Module,name=''):
             name+=name1
             relu_hooks(layer,name)
              
-def Ranger_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
+def Ranger_bounds(model:nn.Module,teacher_model, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
     model.eval()
     iteration = True 
     results={}
@@ -49,6 +49,7 @@ def Ranger_bounds(model:nn.Module, train_loader, device="cuda", bound_type='laye
         for key, val in results.items():
             results[key] = torch.max(val)  
             tresh[key] = torch.min(tresh[key]) 
+            
     # for key, val in results.items(): 
     #     print(val.max(),val.min())   
     #     import matplotlib.pyplot as plt

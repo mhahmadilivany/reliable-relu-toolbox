@@ -10,7 +10,7 @@ class bounded_relu_zero(nn.Module,Relu_bound):
     --------------------------------------
     pytorch module with forward function
     '''
-    def __init__(self, bounds,tresh = None,alpha=None):
+    def __init__(self, bounds,tresh = None,alpha=None , k = -20):
         super().__init__()
         self.bounds = bounds
         self.tresh = None

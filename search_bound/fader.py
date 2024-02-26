@@ -6,7 +6,6 @@ import numpy as np
 import warnings
 import sys;
 sys.path.append("/proj/berzelius-2023-29/users/x_hammo/NetAug/FADER") 
-from search_bound.ranger import Ranger_bounds
 import setup 
 from relu_bound.bound_alpha import bounded_relu_alpha
 from relu_bound.bound_zero import bounded_relu_zero
@@ -33,7 +32,32 @@ parser.add_argument(
     "--gpu", type=str, default=None
 )  # used in single machine experiments
 
+def Ranger_bounds_fader(model:nn.Module,teacher_model, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
+    model.eval()
+    iteration = True 
+    results={}
+    tresh={}
+    relu_hooks(model,name='')      
+    for data, label in train_loader['sub_train']:
+        data = data.to(device)
+        label = label.to(device)
+        model = model.to(device)
+        output = model(data)
+        if iteration:
+            for key, val in activation.items():
+                results[key] = val
+                tresh[key] = val
+            iteration = False
 
+        for key, val in activation.items():
+            prev_max = torch.max(results[key],dim=0)[0]
+            prev_mean = torch.mean(tresh[key],dim=0)
+            curr_max = torch.max(activation[key],dim=0)[0]
+            curr_mean = torch.mean(activation[key],dim=0)
+            results[key] = torch.maximum(prev_max,curr_max)
+            tresh[key] = torch.minimum(prev_mean,curr_mean)   
+    
+    return results,tresh,None
 def eval(model: nn.Module, data_loader_dict) :
 
     test_criterion = nn.CrossEntropyLoss().cuda()
@@ -98,12 +122,19 @@ def relu_hooks(model:nn.Module,name=''):
 def replace_act_all(model:nn.Module,bounds,tresh,name='')->nn.Module:
     for name1,layer in model.named_children():
         if list(layer.children()) == []:
-            if isinstance(layer,nn.ReLU):
+            if isinstance(layer,nn.ReLU) and 'last' not in name1:
                 name_ = name1 + name
                 if tresh==None:
                     model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh)   
                 else:    
-                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh[name_].detach())    
+                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh[name_].detach())  
+            elif isinstance(layer,nn.ReLU) and 'last'  in name1:
+                name_ = name1 + name
+                if tresh==None:
+                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh,k=-20)   
+                else:    
+                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh[name_].detach(),k=-20.0)  
+
         else:
             name+=name1
             replace_act_all(layer,bounds,tresh,name)               
@@ -173,13 +204,47 @@ def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=2000,bitf
             "fault_rate": fault_rate,
         }
     return val_results
+from models import (
 
+   ResNet50,
+)
+def build_model(
+    name: str,
+    n_classes=10,
+    dropout_rate=0.0,
+    **kwargs,
+) -> nn.Module:
 
-def fader_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer', bitflip='float'):
+    model_dict = {
+
+        "resnet50": ResNet50,
+    }
+
+    name = name.split("-")
+    if len(name) > 1:
+        kwargs["width_mult"] = float(name[1])
+    name = name[0]
+
+    return model_dict[name](n_classes=n_classes, dropout_rate=dropout_rate, **kwargs)
+def load_state_dict_from_file(file: str) -> Dict[str, torch.Tensor]:
+    checkpoint = torch.load(file, map_location="cpu")
+    if "state_dict" in checkpoint:
+        checkpoint = checkpoint["state_dict"]
+    return checkpoint
+def fader_bounds(model:nn.Module, teacher_model, train_loader, device="cuda", bound_type='layer', bitflip='float'):
     model.eval()
+    teacher_model.eval()
     original_model  = copy.deepcopy(model)
-    results,tresh,_ = Ranger_bounds(copy.deepcopy(model),train_loader,device,bound_type,bitflip)
+    results,tresh,_ =  Ranger_bounds_fader(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip) # FtClipAct_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
+    len_relu = len(results)
+    if bound_type =="layer":
+        for i,(key, val) in enumerate(results.items()):
+                if i<len_relu-1:
+                    results[key] = torch.max(val)  
+                    tresh[key] = torch.min(tresh[key]) 
+    print(results)        
     model = replace_act_all(model,results,tresh)
+    torch.save(model.state_dict(), "temp.pth")      
     eval(model,train_loader)
     warnings.filterwarnings("ignore")
     args, opt = parser.parse_known_args()
@@ -199,26 +264,25 @@ def fader_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer
             param.requires_grad=False
         else:
             print(name)
-            param.requires_grad=True      
-    model = nn.parallel.DistributedDataParallel(
-        model.cuda(), device_ids=[dist.local_rank()]
-    )
-   
-    model = train(original_model , model, train_loader, args.path,bitflip)
-    alpha = {}
-    keys=[]
-    i=0
-    for key,val in results.items():
-        keys.append(key)
-    # print(keys)    
-    for name, param in model.module.named_parameters():
-        if param.requires_grad:
-            if np.any([key in name for key in ["alpha"]]):
-                # print(param)
-                alpha[keys[i]]=param
-                i+=1
-    
-    print(alpha)
+            param.requires_grad=False      
+    # model = nn.parallel.DistributedDataParallel(
+    #     model.cuda(), device_ids=[dist.local_rank()]
+    # )
+    # for name, param in model.named_parameters():
+    #     if np.any([key in name for key in ["weight", "norm","bias"]]):
+    #         param.requires_grad=False
+    #     else:
+    #         print(name)
+    #         param.requires_grad=False 
+     
+    weight_decay_list =[4e-1,4e-2,4e-3,4e-4,4e-5,4e-6,4e-7,4e-8,4e-9,4e-10,4e-11]
+    model = train(model,original_model,train_loader,weight_decay_list)
+    for name, param in model.named_parameters():
+        if np.any([key in name for key in ["weight", "norm","bias"]]):
+            param.requires_grad=False
+        else:
+            print(name)
+            param.requires_grad=True   
     bounds_dict = {}
     keys=[]
     i=0
@@ -226,122 +290,120 @@ def fader_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer
     for key,val in results.items():
         keys.append(key)
     # print(keys)    
-    for name, param in model.module.named_parameters():
+    for name, param in model.named_parameters():
         if param.requires_grad:
             if np.any([key in name for key in ["bounds_param"]]):
                 # print(param)
                 bounds_dict[keys[i]]=param
                 i+=1
     print(bounds_dict)            
-    return bounds_dict,tresh,alpha
+    return bounds_dict,tresh,None
 
-def train(
-    original_model:nn.Module,
-    model: nn.Module,
-    data_provider,
-    path: str,
-    bitflip='float',
-    base_lr=0.1,
-    warmup_epochs = 0 ,
-    n_epochs = 20,
-    weight_decay=4e-8
-):
-    params_without_wd = []
-    params_with_wd = []
-    for name, param in model.named_parameters():
-        if param.requires_grad:
-            if np.any([key in name for key in ["bias", "norm"]]):
-                params_without_wd.append(param)
-            else:
-                # print(name)
-                params_with_wd.append(param)
-    net_params = [
-        {"params": params_without_wd, "weight_decay": 0},
-        {
-            "params": params_with_wd,
-            "weight_decay": weight_decay,
-        },
-    ]
-    optimizer = torch.optim.SGD(
-        net_params,
-        lr=base_lr * dist.size(),
-        weight_decay=weight_decay
-    )
-    # build lr scheduler
-    lr_scheduler = CosineLRwithWarmup(
-        optimizer,
-        warmup_epochs * len(data_provider['train']),
-        base_lr,
-        n_epochs * len(data_provider['train']),
-    )
-    # train criterion
-    train_criterion = nn.CrossEntropyLoss()
-    # init
-    best_val = 0.0
-    start_epoch = 0
-    checkpoint_path = os.path.join(path, "checkpoint")
-    log_path = os.path.join(path, "logs")
-    os.makedirs(checkpoint_path, exist_ok=True)
-    os.makedirs(log_path, exist_ok=True)
-    logs_writer = open(os.path.join(log_path, "exp.log"), "a") 
-    # fault_rates = [1e-7,1e-6,3e-6,1e-5,3e-5]
-    # images,lables = next(iter(data_provider['val']))
-    # pfi_model = FaultInjection(model = copy.deepcopy(model),batch_size=images.shape[0],input_shape=[images.shape[1],images.shape[2],images.shape[3]],layer_types=[torch.nn.Conv2d, torch.nn.Linear ,Relu_bound,quan_Conv2d,quan_Linear],use_cuda=True)
-    # for iteration in range(10):
-        # print("iteration = {}".format(iteration))
-        # for fault in fault_rates:
-        #     print("fault_rate = {}".format(fault))
-        #     if bitflip=='float':
-        #         corrupted_model = multi_weight_inj_float(pfi_model,fault)
-        #     elif bitflip=='fixed':    
-        #         corrupted_model = multi_weight_inj_fixed(pfi_model,fault)
-        #     elif bitflip =="int":
-        #         corrupted_model = multi_weight_inj_int (pfi_model,fault)  
 
-    for epoch in range(
-        start_epoch,
-        n_epochs
-        + warmup_epochs,
-    ):
-        train_info_dict = train_one_epoch(
-            original_model,
-            original_model,
-            model,
-            data_provider,
-            epoch,
-            optimizer,
-            train_criterion,
-            lr_scheduler,
-            bitflip,
-        )
 
-        val_info_dict = eval(model, data_provider)
-# print(val_info_dict)
-    return model
-def distillation_loss(student_hidden_representation, teacher_hidden_representation,inputs,device):
-    # loss = torch.nn.functional.mse_loss(source, target, reduction="none")
-    # loss = loss * ((source > target) | (target > 0)).float()
-    cosine_loss = nn.CosineEmbeddingLoss()
-    return cosine_loss(student_hidden_representation, teacher_hidden_representation, target=torch.ones(inputs.size(0)).to(device))
+def distillation_loss(feat_s, feat_t,inputs,device):
+    # loss = loss * ((teacher_hidden_representation > student_hidden_representation) | (teacher_hidden_representation > 0)).float()
+    cosine_loss =  nn.CosineSimilarity()
+    # KL_loss = nn.KLDivLoss()
+    return torch.mean(cosine_loss(feat_s.view(feat_s.size(0),-1), feat_t.view(feat_t.size(0),-1))) #oss.sum()
+    # return KL_loss(feat_t,feat_s)
 def kl_loss(a,b):
     loss = -a*b + torch.log(b+1e-5)*b
     return loss
 def cross_entropy_loss_with_soft_target(pred, soft_target):
     logsoftmax = nn.LogSoftmax()
     return torch.mean(torch.sum(-soft_target * logsoftmax(pred), 1))
+def L1_reg(model):
+    nweights = 0
+    for name,param in model.named_parameters():
+        if param.requires_grad==True:
+            if 'bounds'  in name:
+                nweights = nweights + param.numel()
+    L1_term = torch.tensor(0., requires_grad=True)
+    for name, param in model.named_parameters():
+        if param.requires_grad==True:
+            if 'bounds'  in name:
+                weights_sum = torch.sum(torch.abs(param))
+                L1_term = L1_term + weights_sum
+    L1_term = L1_term / nweights
+    return L1_term
+
+
+def train(model,original_model,data_provider,weight_decay_list,base_lr=0.1,warmup_epochs=5,n_epochs=15 , treshold=torch.tensor(1.5)):
+    val_info_dict = eval(model, data_provider)
+    best_acc =torch.tensor(val_info_dict["val_top1"])
+    for name, param in reversed(list(model.named_parameters())):
+        if np.any([key in name for key in ["weight", "norm","bias"]]):
+            param.requires_grad=False
+            continue
+        else:
+            print(name)
+            param.requires_grad=True 
+        for wd in weight_decay_list:
+            params_with_wd=[]
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    params_with_wd.append(param)
+            net_params = [
+                {
+                    "params": params_with_wd,
+                    "weight_decay": wd,
+                },
+            ]
+            optimizer = torch.optim.AdamW(
+                net_params,
+                lr=base_lr * dist.size(),
+                weight_decay=wd
+            )
+            # build lr scheduler
+            lr_scheduler = CosineLRwithWarmup(
+                optimizer,
+                warmup_epochs * len(data_provider['train']),
+                base_lr,
+                n_epochs * len(data_provider['train']),
+            )
+            # train criterion
+            train_criterion = nn.CrossEntropyLoss()
+            # test criterion 
+            test_criterion = nn.CrossEntropyLoss()
+            # init
+            
+            start_epoch = 0
+            for epoch in range(
+                start_epoch,
+                n_epochs
+                + warmup_epochs,
+            ):
+                train_info_dict = train_one_epoch(
+                    model,
+                    original_model,
+                    data_provider,
+                    epoch,
+                    optimizer,
+                    train_criterion,
+                    lr_scheduler,
+                )
+
+            val_info_dict = eval(model, data_provider)
+            if torch.abs(best_acc - val_info_dict["val_top1"]) <=treshold:
+                print(wd)
+                torch.save(model.state_dict(), "temp.pth")
+                param.requires_grad = False
+                break
+            else:
+                model.load_state_dict(torch.load("temp.pth"))  
+    return model
+
 
 
 def train_one_epoch(
-    corrupted_model : nn.Module,
-    original_model:nn.Module,
     model: nn.Module,
+    original_model,
     data_provider,
     epoch: int,
     optimizer,
     criterion,
     lr_scheduler,
-    bitflip,
-
 ):
     train_loss = DistributedMetric()
     train_top1 = DistributedMetric()
@@ -358,26 +420,24 @@ def train_one_epoch(
         for _, (images, labels) in enumerate(data_provider['train']):
             data_time.update(time.time() - end)
             images, labels = images.cuda(), labels.cuda()
-            with torch.no_grad():
-                t_feats, t_out = original_model.extract_feature(images)
-                teacher_output = corrupted_model(images).detach()
-                teacher_logits = F.softmax(teacher_output, dim=1)
-            s_feats, s_out = model.module.extract_feature(images)
-            feat_num = len(t_feats)
-            loss_distill = 0
-            for i in range(feat_num):
-                loss_distill += distillation_loss(s_feats[i], t_feats[i],images,'cuda') / 2 ** (feat_num - i - 1)
-            
-                # loss_distill.sum()
+            l2_bounds = 0.0
+            for name, param in model.named_parameters():
+                if param.requires_grad==True:
+                    if "bounds" in name:
+                        l2_bounds += torch.mean(torch.pow(param, 2))
             optimizer.zero_grad()
+            with torch.no_grad():
+                teacher_output = original_model(images).detach()
+                teacher_logits = F.softmax(teacher_output, dim=1)
             nat_logits = model(images)
             kd_loss = cross_entropy_loss_with_soft_target(
                         nat_logits,teacher_logits
                     )
-            loss =   loss_distill  + kd_loss +  criterion(nat_logits, labels) #+ torch.mean(kd_loss) +   #+ 
+            nat_logits = model(images)
+            loss =  0.9 * criterion(nat_logits,labels)  + 0.1 * kd_loss # +  0.00004 * l2_bounds #
             loss.backward()
-            # for name, par in model.named_parameters():
-            #     if par.requires_grad ==True :
+            # for name,par in model.named_parameters():
+            #     if par.requires_grad == True:
             #         print(par.grad)
             top1 = accuracy(nat_logits, labels, topk=(1,))[0][0]
             optimizer.step()
@@ -403,8 +463,6 @@ def train_one_epoch(
         "train_top1": train_top1.avg.item(),
         "train_loss": train_loss.avg.item(),
     }
-
-
 
 
 

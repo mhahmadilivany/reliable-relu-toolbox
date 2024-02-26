@@ -19,7 +19,7 @@ import time
 from tqdm import tqdm
 from torchpack import distributed as dist
 parser = argparse.ArgumentParser()
-parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="pretrained_models/lenet_mnist/fitact")
+parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="./pretrained_models/teachers/vgg16_bound_layer_relu_float/checkpoint")
 parser.add_argument("--base_batch_size", type=int, default=128)
 parser.add_argument("--manual_seed", type=int, default=0)
 parser.add_argument(
@@ -91,7 +91,11 @@ def relu_hooks(model:nn.Module,name=''):
 def replace_act(model:nn.Module,bounds,tresh,name='')->nn.Module:
     for name1,layer in model.named_children():
         if list(layer.children()) == []:
-            if isinstance(layer,nn.ReLU):
+            if isinstance(layer,nn.ReLU) and 'last' not in name1:
+                name_ = name1 + name
+                model._modules[name1] = bounded_relu_fitact(bounds[name_].detach(),tresh[name_],-20)
+            elif  isinstance(layer,nn.ReLU) and 'last' in name1:
+                print("last relu layer")
                 name_ = name1 + name
                 model._modules[name1] = bounded_relu_fitact(bounds[name_].detach(),tresh[name_],-20)
         else:
@@ -103,9 +107,9 @@ def replace_act(model:nn.Module,bounds,tresh,name='')->nn.Module:
 
 
 
-def fitact_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer',bitflip='float'):
+def fitact_bounds(model:nn.Module, teacher_model,train_loader, device="cuda", bound_type='layer',bitflip='float'):
     model.eval()
-    results,tresh,_ = Ranger_bounds(copy.deepcopy(model),train_loader,device,bound_type,bitflip)
+    results,tresh,_ = Ranger_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
     # print(results['relu1'])
     model = replace_act(model,results,tresh)
     # print(model)
@@ -158,16 +162,16 @@ def train(
     data_provider,
     path: str,
     base_lr=0.01,
-    warmup_epochs = 5 ,
-    n_epochs = 50,
-    weight_decay=4.0e-9
+    warmup_epochs = 0 ,
+    n_epochs = 150,
+    weight_decay = 4e-9
+
 ):
-    
-    # print(model)
     params_without_wd = []
     params_with_wd = []
     for name, param in model.named_parameters():
         if param.requires_grad:
+
             if np.any([key in name for key in ["bias", "norm"]]):
                 params_without_wd.append(param)
             else:
@@ -184,7 +188,6 @@ def train(
     optimizer = torch.optim.Adam(
         net_params,
         lr=base_lr * dist.size(),
-        weight_decay = weight_decay
     )
     # build lr scheduler
     lr_scheduler = CosineLRwithWarmup(
@@ -219,8 +222,7 @@ def train(
             train_criterion,
             lr_scheduler,
         )
-        # for par in model.parameters():
-        #     print(par)
+    
         val_info_dict = eval(model, data_provider)
         is_best = val_info_dict["val_top1"] > best_val
         best_val = max(best_val, val_info_dict["val_top1"])
@@ -231,7 +233,6 @@ def train(
         if dist.is_master():
             logs_writer.write(epoch_log + "\n")
             logs_writer.flush()
-
         # save checkpoint
         checkpoint = {
             "state_dict": model.module.state_dict(),
@@ -284,10 +285,14 @@ def train_one_epoch(
         for _, (images, labels) in enumerate(data_provider['train']):
             data_time.update(time.time() - end)
             images, labels = images.cuda(), labels.cuda()
-
+            l2_bounds = 0.0
+            for name, param in model.named_parameters():
+                if param.requires_grad==True:
+                    if "bounds" in name:
+                        l2_bounds += torch.mean(torch.pow(param, 2))
             optimizer.zero_grad()
             output = model(images)
-            loss = criterion(output, labels)
+            loss = criterion(output, labels) + 0.0004 * l2_bounds
             loss.backward()
             # for par in model.parameters():
             #     print(par.grad)

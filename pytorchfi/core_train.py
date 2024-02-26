@@ -244,20 +244,21 @@ class FaultInjection:
                     # print(corrupt_idx)
                     corrupt_bit_idx = corrupt_bit[0][inj]
                     if isinstance(layer,Relu_bound):
-                            orig_value = layer.bounds[corrupt_idx].item()
-                            with torch.no_grad():
-                                if custom_injection:
-                                    corrupt_value = custom_function[1](layer.bounds, corrupt_idx,corrupt_bit_idx ,total_bits ,n_frac , n_int)
-                                    layer.bounds[corrupt_idx].copy_(corrupt_value[0])
-                                else:
-                                    layer.bounds[corrupt_idx].copy_(corrupt_value[inj]) 
+                        pass
+                            # orig_value = layer.bounds[corrupt_idx].item()
+                            # with torch.no_grad():
+                            #     if custom_injection:
+                            #         corrupt_value = custom_function[1](layer.bounds, corrupt_idx,corrupt_bit_idx ,total_bits ,n_frac , n_int)
+                            #         layer.bounds[corrupt_idx].copy_(corrupt_value)
+                            #     else:
+                            #         layer.bounds[corrupt_idx].copy_(corrupt_value[inj]) 
                     else:
                         orig_value = layer.weight[corrupt_idx].item()   
                         with torch.no_grad():
                             if custom_injection:
                                 corrupt_value = custom_function[0](layer.weight, corrupt_idx,corrupt_bit_idx,total_bits ,n_frac , n_int)
                                 # print(corrupt_value)
-                                layer.weight[corrupt_idx].copy_(corrupt_value[0])
+                                layer.weight[corrupt_idx].copy_(corrupt_value)
                             else:
                                 layer.weight[corrupt_idx].copy_(corrupt_value[inj])
 
@@ -273,19 +274,20 @@ class FaultInjection:
                     corrupt_bit_idx = corrupt_bit[1][inj]
                     # print(corrupt_idx)
                     if  isinstance(layer,Relu_bound):
-                        orig_value = layer.tresh[corrupt_idx].item()
-                        with torch.no_grad():
-                            if custom_injection:
-                                corrupt_value = custom_function[1](layer.tresh, corrupt_idx ,corrupt_bit_idx ,total_bits,n_frac , n_int)
-                                layer.tresh[corrupt_idx].copy_(corrupt_value[0])
-                            else:
-                                layer.tresh[corrupt_idx].copy_(corrupt_value[inj])
+                        pass
+                        # orig_value = layer.tresh[corrupt_idx].item()
+                        # with torch.no_grad():
+                        #     if custom_injection:
+                        #         corrupt_value = custom_function[1](layer.tresh, corrupt_idx ,corrupt_bit_idx ,total_bits,n_frac , n_int)
+                        #         layer.tresh[corrupt_idx].copy_(corrupt_value)
+                        #     else:
+                        #         layer.tresh[corrupt_idx].copy_(corrupt_value[inj])
                     else:    
                         orig_value = layer.bias[corrupt_idx].item()   
                         with torch.no_grad():
                             if custom_injection:
                                 corrupt_value = custom_function[1](layer.bias, corrupt_idx ,corrupt_bit_idx , total_bits,n_frac , n_int)
-                                layer.bias[corrupt_idx].copy_(corrupt_value[0])
+                                layer.bias[corrupt_idx].copy_(corrupt_value)
                             else:
                                 layer.bias[corrupt_idx].copy_(corrupt_value[inj])
 
@@ -325,7 +327,7 @@ class FaultInjection:
             self.corrupt_dim,
         )
 
-        self.corrupted_model = copy.deepcopy(self.original_model)
+        self.corrupted_model = self.original_model
         handles_neurons = self._traverse_model_set_hooks_neurons(
             self.corrupted_model,
             self._inj_layer_types,

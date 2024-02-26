@@ -29,9 +29,10 @@ class AlexNet_model(nn.Module):
         self.linear1 = nn.Linear(256 * 2 * 2, 4096)
         self.relu6 = nn.ReLU()
         self.linear2 = nn.Linear(4096, 4096)
-        self.relu7= nn.ReLU()
+        self.relu7_last= nn.ReLU()
         self.linear3 = nn.Linear(4096, n_classes)
-        self.relu8= nn.ReLU()
+        # self.bn8 = nn.BatchNorm2d(10),
+        # self.relu8_last= nn.ReLU()
     def forward(self, x):
         x = self.relu1(self.conv1(x))
         x = self.maxpool1(x)
@@ -45,9 +46,10 @@ class AlexNet_model(nn.Module):
         # x = self.dropout(x)
         x = self.relu6(self.linear1(x))
         # x = self.dropout(x)
-        x = self.relu7(self.linear2(x))
+        x = self.relu7_last(self.linear2(x))
         x = self.linear3(x)
-        x = self.relu8(x)
+        # x = self.bn8(x)
+        # x = self.relu8_last(x)
         return x        
     def extract_feature(self, x):
         x = self.conv1(x)
@@ -67,15 +69,16 @@ class AlexNet_model(nn.Module):
         x = self.linear1(x)
         feat6 = self.relu6(x)
         x = self.linear2(feat6)
-        feat7 = self.relu7(x)
-        if isinstance(self.relu8,nn.ReLU) or isinstance(self.relu8,Relu_bound) : 
-           x =  self.linear3(feat7)
-           feat8 = self.relu8(x)
-           out = feat8
-           return [torch.flatten(feat1, 1), torch.flatten(feat2, 1), torch.flatten(feat3, 1),torch.flatten(feat4, 1),torch.flatten(feat5, 1),torch.flatten(feat6, 1),torch.flatten(feat7, 1),torch.flatten(feat8, 1)], out
+        feat7 = self.relu7_last(x)
+        if hasattr(self,'relu8_last'):
+            if isinstance(self.relu8_last,nn.ReLU) or isinstance(self.relu8_last,Relu_bound) : 
+                x =  self.linear3(feat7)
+                feat8 = self.relu8_last(x)
+                out = feat8
+                return [feat8], out
         else:
             out = self.linear3(feat7)
-            return [torch.flatten(feat1, 1), torch.flatten(feat2, 1), torch.flatten(feat3, 1),torch.flatten(feat4, 1),torch.flatten(feat5, 1),torch.flatten(feat6, 1),torch.flatten(feat7, 1)], out
+            return [feat7], out
 
         
 ###########################################

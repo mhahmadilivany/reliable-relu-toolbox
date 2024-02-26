@@ -55,7 +55,7 @@ def replace_act(model:nn.Module,bounds,key,tresh,name='')->nn.Module:
             name+=name1
             replace_act(layer,bounds,key,tresh,name)               
     return model  
-def FtClipAct_bounds(model:nn.Module, data_loader, device="cuda",bound_type='layer',bitflip='float',N=5, M = 4,fault_rates=[1e-7,1e-6,3e-6,1e-5,3e-5], delta_b=0.01):
+def FtClipAct_bounds(model:nn.Module, teacher_model, data_loader, device="cuda",bound_type='layer',bitflip='float',N=5, M = 4,fault_rates=[1e-7,1e-6,3e-6,1e-5,3e-5], delta_b=0.1):
     layer_idx = 0
     model.eval()
     model.cuda()
@@ -118,6 +118,8 @@ def FtClipAct_bounds(model:nn.Module, data_loader, device="cuda",bound_type='lay
         # model = replace_act(model,T_result,key,tresh_val)
         # print(model)
         layer_idx+=1
+    for key,val in bounds_results.items():
+        torch.save(bounds_results[key],"{}_{}_{}_{}.pt".format(model.__class__.__name__,bound_type,bitflip,key))
     return bounds_results,tresh_results,None  
 
 
@@ -180,7 +182,7 @@ def Interval_Search(T,AUC):
 
 
 
-def accuracy_vs_faultrate(model,fault_rate,data_loader,layer_idx,bitflip,fault_simulation_epochs=50):
+def accuracy_vs_faultrate(model,fault_rate,data_loader,layer_idx,bitflip,fault_simulation_epochs=20):
     inputs, classes = next(iter(data_loader['sub_train']))
     pfi_model = FaultInjection(copy.deepcopy(model), 
                 inputs.shape[0],

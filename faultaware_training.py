@@ -21,11 +21,13 @@ from utils.metric import accuracy,AverageMeter
 from utils.lr_scheduler import CosineLRwithWarmup
 from utils.init import load_state_dict,init_modules
 from utils import load_state_dict_from_file
-from pytorchfi.weight_error_models import multi_weight_inj
+from pytorchfi.weight_error_models import multi_weight_inj_float
 from pytorchfi.core import FaultInjection
 import random 
 from setup import *
 import torch.nn.functional as F
+from pytorchfi.weight_error_models import multi_weight_inj_fixed,multi_weight_inj_float,multi_weight_inj_int
+from relu_bound.bound_relu import Relu_bound
 import numpy as np
 parser = argparse.ArgumentParser()
 
@@ -48,34 +50,41 @@ parser.add_argument("--init_from", type=str, default="pretrained_models/alexnet_
 
 
 
-def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=10)-> Dict:
+def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=50,bitflip=None,total_bits = 32 , n_frac = 16 , n_int = 15 )-> Dict:
     inputs, classes = next(iter(data_loader_dict['val'])) 
     pfi_model = FaultInjection(model, 
                             inputs.shape[0],
                             input_shape=[inputs.shape[1],inputs.shape[2],inputs.shape[3]],
-                            layer_types=[torch.nn.Conv2d, torch.nn.Linear],
+                            layer_types=[torch.nn.Conv2d, torch.nn.Linear ,Relu_bound],
+                            total_bits= total_bits,
+                            n_frac = n_frac, 
+                            n_int = n_int, 
                             use_cuda=True,
                             )
-    
+    print(pfi_model.print_pytorchfi_layer_summary())
     test_criterion = nn.CrossEntropyLoss().cuda()
 
     val_loss = DistributedMetric()
     val_top1 = DistributedMetric()
     val_top5 = DistributedMetric()
 
-    model.eval()
+    pfi_model.original_model.eval()
     with torch.no_grad():
         with tqdm(
-            total=len(data_loader_dict["val"]),
+            total= iterations,
             desc="Eval",
             disable=not dist.is_master(),
         ) as t:
             for i in range(iterations):
-                corrupted_model = multi_weight_inj(pfi_model,fault_rate,seed=i)
+                if bitflip=='float':
+                    corrupted_model = multi_weight_inj_float(pfi_model,fault_rate)
+                elif bitflip=='fixed':    
+                    corrupted_model = multi_weight_inj_fixed(pfi_model,fault_rate)
+                elif bitflip =="int":
+                    corrupted_model = multi_weight_inj_int (pfi_model,fault_rate)
+                    # corrupted_model = multi_weight_inj_int(pfi_model,fault_rate)          
                 for images, labels in data_loader_dict["val"]:
                     images, labels = images.cuda(), labels.cuda()
-                    # compute output
-
                     output = corrupted_model(images)
                     loss = test_criterion(output, labels)
                     val_loss.update(loss, images.shape[0])
@@ -83,19 +92,20 @@ def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=10)-> Dic
                     val_top5.update(acc5[0], images.shape[0])
                     val_top1.update(acc1[0], images.shape[0])
                     
-                    t.set_postfix(
-                        {
-                            "loss": val_loss.avg.item(),
-                            "top1": val_top1.avg.item(),
-                            "top5": val_top5.avg.item(),
-                            "#samples": val_top1.count.item(),
-                            "batch_size": images.shape[0],
-                            "img_size": images.shape[2],
-                            "fault_rate": fault_rate,
-                        }
-                    )
-                    t.update()
-        # print( val_top1.avg.item())
+                ####        
+                t.set_postfix(
+                    {
+                        "loss": val_loss.avg.item(),
+                        "top1": val_top1.avg.item(),
+                        "top5": val_top5.avg.item(),
+                        "#samples": val_top1.count.item(),
+                        "batch_size": images.shape[0],
+                        "img_size": images.shape[2],
+                        "fault_rate": fault_rate,
+                    }
+                )
+                t.update()
+                # pfi_model.original_model = corrupted_model    
         val_results = {
             "val_top1": val_top1.avg.item(),
             "val_top5": val_top5.avg.item(),
@@ -160,6 +170,7 @@ def train_one_epoch(
     optimizer,
     criterion,
     lr_scheduler,
+    bitflip
 
 ) -> Dict:
     train_loss = DistributedMetric()
@@ -175,8 +186,13 @@ def train_one_epoch(
     ) as t:
         end = time.time()
         for fault_rate in fault_rates:
+            if bitflip=='float':
+                corrupted_model = multi_weight_inj_float(pfi_model,fault_rate)
+            elif bitflip=='fixed':    
+                corrupted_model = multi_weight_inj_fixed(pfi_model,fault_rate)
+            elif bitflip =="int":
+                corrupted_model = multi_weight_inj_int (pfi_model,fault_rate)
             for _, (images, labels) in enumerate(data_provider['train']):
-                corrupted_model = multi_weight_inj(pfi_model,fault_rate,seed=_)
                 data_time.update(time.time() - end)
                 images, labels = images.cuda(), labels.cuda()
                 with torch.no_grad():
@@ -227,7 +243,7 @@ def train(
     resume=False,
     base_lr=0.01,
     warmup_epochs = 5 ,
-    n_epochs = 100,
+    n_epochs = 50,
     weight_decay=4.0e-5
 ):
     
@@ -301,39 +317,40 @@ def train(
             optimizer,
             train_criterion,
             lr_scheduler,
+            "fixed"
         )
         
-        val_info_dict = eval_fault(pfi_model.original_model,data_provider,1e-3)
-        is_best = val_info_dict["val_top1"] > best_val
-        best_val = max(best_val, val_info_dict["val_top1"])
-        # log
-        epoch_log = f"[{epoch + 1 - warmup_epochs}/{n_epochs}]"
-        epoch_log += f"\tval_top1={val_info_dict['val_top1']:.2f} ({best_val:.2f})"
-        epoch_log += f"\ttrain_top1={train_info_dict['train_top1']:.2f}\tlr={optimizer.param_groups[0]['lr']:.2E}"
-        if dist.is_master():
-            logs_writer.write(epoch_log + "\n")
-            logs_writer.flush()
+        # val_info_dict = eval_fault(pfi_model.original_model,data_provider,3e-6,bitflip='fixed')
+        # is_best = val_info_dict["val_top1"] > best_val
+        # best_val = max(best_val, val_info_dict["val_top1"])
+        # # log
+        # epoch_log = f"[{epoch + 1 - warmup_epochs}/{n_epochs}]"
+        # epoch_log += f"\tval_top1={val_info_dict['val_top1']:.2f} ({best_val:.2f})"
+        # epoch_log += f"\ttrain_top1={train_info_dict['train_top1']:.2f}\tlr={optimizer.param_groups[0]['lr']:.2E}"
+        # if dist.is_master():
+        #     logs_writer.write(epoch_log + "\n")
+        #     logs_writer.flush()
 
-        # save checkpoint
-        checkpoint = {
-            "state_dict": pfi_model.original_model.module.state_dict(),
-            "epoch": epoch,
-            "best_val": best_val,
-            "optimizer": optimizer.state_dict(),
-            "lr_scheduler": lr_scheduler.state_dict(),
-        }
-        if dist.is_master():
-            torch.save(
-                checkpoint,
-                os.path.join(checkpoint_path, "checkpoint.pt"),
-                _use_new_zipfile_serialization=False,
-            )
-            if is_best:
-                torch.save(
-                    checkpoint,
-                    os.path.join(checkpoint_path, "best.pt"),
-                    _use_new_zipfile_serialization=False,
-                )
+        # # save checkpoint
+        # checkpoint = {
+        #     "state_dict": pfi_model.original_model.module.state_dict(),
+        #     "epoch": epoch,
+        #     "best_val": best_val,
+        #     "optimizer": optimizer.state_dict(),
+        #     "lr_scheduler": lr_scheduler.state_dict(),
+        # }
+        # if dist.is_master():
+        #     torch.save(
+        #         checkpoint,
+        #         os.path.join(checkpoint_path, "checkpoint.pt"),
+        #         _use_new_zipfile_serialization=False,
+        #     )
+        #     if is_best:
+        #         torch.save(
+        #             checkpoint,
+        #             os.path.join(checkpoint_path, "best.pt"),
+        #             _use_new_zipfile_serialization=False,
+        #         )
 
 def main():
     warnings.filterwarnings("ignore")
@@ -386,15 +403,15 @@ def main():
         if  np.all( [key  not in args.name for key in ['vgg','nin']]) :
             init_modules(pfi_model.original_model, init_type=args.init_type)
             print("Random Init")
-    pfi_model.original_model = replace_act(copy.deepcopy(model),'tresh','ranger',data_provider)
+    pfi_model.original_model = replace_act(copy.deepcopy(model),copy.deepcopy(model),'zero','ranger',data_provider,'layer','fixed')
     # for name,param in pfi_model.original_model.named_parameters():
     #     if 'bounds' in name:
     #         print("call")
     #         param.requires_grad = False
     eval(pfi_model.original_model,data_provider)
-    eval_fault(pfi_model.original_model,data_provider,1e-3)
+    # eval_fault(pfi_model.original_model,data_provider,1e-6,bitflip='float')
     # faultrates
-    fault_rates=[1e-3] 
+    fault_rates=[3e-6] 
     # train
     generator = torch.Generator()
     generator.manual_seed(args.manual_seed)
@@ -402,5 +419,6 @@ def main():
         pfi_model.original_model.cuda(), device_ids=[dist.local_rank()]
     )
     train(pfi_model,fault_rates,data_provider, args.path, args.resume)
+    eval_fault(pfi_model.original_model,data_provider,3e-6,bitflip='fixed')
 if __name__ == "__main__":
     main()

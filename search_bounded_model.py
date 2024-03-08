@@ -73,13 +73,13 @@ parser.add_argument(
         "resnet50",
     ],
 )
-parser.add_argument("--init_from", type=str, default="./pretrained_models/vgg16_cifar10/checkpoint/best.pt")
-parser.add_argument("--init_teacher_from", type=str, default="./pretrained_models/vgg16_cifar10/checkpoint/best.pt") #"./pretrained_models/teachers/vgg16_bound_layer/checkpoint/checkpoint/checkpoint.pt"
+parser.add_argument("--init_from", type=str, default="./pretrained_models/vgg16_cifar10_c/checkpoint/best.pt")
+parser.add_argument("--init_teacher_from", type=str, default="./pretrained_models/vgg16_cifar10_c/checkpoint/best.pt") #"./pretrained_models/teachers/vgg16_bound_layer/checkpoint/checkpoint/checkpoint.pt"
 parser.add_argument("--init_teacher_bounds_neuron", type=lambda x: bool(strtobool(x)),default=False)#"./pretrained_models/teachers/vgg16_bound_neuron/checkpoint/checkpoint/checkpoint.pt"
 parser.add_argument("--init_teacher_bounds_layer", type=lambda x: bool(strtobool(x)),default=False)
 parser.add_argument("--save_path", type=str, default=None)
-parser.add_argument("--name_relu_bound",type=str,default="fader")
-parser.add_argument("--name_serach_bound",type=str, default="fader")
+parser.add_argument("--name_relu_bound",type=str,default="fitact")
+parser.add_argument("--name_serach_bound",type=str, default="fitact")
 parser.add_argument("--bounds_type",type=str, default="layer")
 parser.add_argument("--bitflip",type=str, default="fixed")
 parser.add_argument("--fault_rates",type=list, default=[1e-7,1e-6,3e-6,1e-5,3e-5])
@@ -131,11 +131,11 @@ if __name__ == "__main__":
     model = build_model(args.model, n_classes,0.0).cuda()
     checkpoint = load_state_dict_from_file(args.init_from)
     model.load_state_dict(checkpoint) 
-    teacher_model  = build_model(args.teacher_model,n_classes,0.0).cuda()
-    checkpoint_teacher = load_state_dict_from_file(args.init_teacher_from)
-    teacher_model.load_state_dict(checkpoint_teacher)
-    for param in model.parameters():
-        print(param.shape)
+    # teacher_model  = build_model(args.teacher_model,n_classes,0.0).cuda()
+    # checkpoint_teacher = load_state_dict_from_file(args.init_teacher_from)
+    # teacher_model.load_state_dict(checkpoint_teacher)
+    # for param in model.parameters():
+    #     print(param.shape)
     # if args.init_teacher_bounds_neuron:
     #     temp=[]
     #     relu_hooks(teacher_model,name='')      
@@ -234,9 +234,16 @@ if __name__ == "__main__":
     #     output = model(data)
     #     for key,val in activation.items():
     #         results[key].append(val)
-        
-    # for i,(key,val) in enumerate(results.items()):
-    #     values[key].append(torch.cat(results[key]).flatten())
+    # ################## for neuron ######################    
+    # # for i,(key,val) in enumerate(results.items()):
+    # #     values[key].append(torch.max(torch.cat(results[key]).flatten(start_dim=1),dim=0))
+
+    # #     print(values[key][0].values.shape)
+    # # fig, axs = plt.subplots(len(values),1,figsize=(20,5))        
+    # # for i,key in enumerate(values.keys()):
+    # #     axs[i].hist(values[key][0].values.detach().cpu().numpy(),histtype='stepfilled', alpha=0.3, color = 'b')
+    # # plt.savefig("dist_"+args.name_serach_bound)    
+    # # ##################################################  
     # del results    
     # for key in values.keys():
     #     mask = torch.where(values[key][0]<=1.0)
@@ -246,7 +253,7 @@ if __name__ == "__main__":
     # del values 
     # del mask
     # del mask1   
-    # model = replace_act(model,teacher_model,args.name_relu_bound,args.name_serach_bound,data_loader_dict,args.bounds_type,args.bitflip)
+    # model = replace_act(model,args.name_relu_bound,args.name_serach_bound,data_loader_dict,args.bounds_type,args.bitflip)
     # model.eval()
     # results_b = {}
     # values_b={}
@@ -353,7 +360,7 @@ if __name__ == "__main__":
     # plt.savefig("disthi1_"+args.name_serach_bound)    
           
          
-
+    # exit()
     ###########################################################################################################################################################       
     if args.name_relu_bound=="none":
         for fault_rate in args.fault_rates:
@@ -361,7 +368,7 @@ if __name__ == "__main__":
             print("top1 = {} ,  top5 = {} , Val_loss = {} , fault_rate = {}" .format(val_results_fault['val_top1'],val_results_fault['val_top1'],val_results_fault['val_loss'],val_results_fault['fault_rate']))   
     
     else:             
-        model = replace_act(model,teacher_model,args.name_relu_bound,args.name_serach_bound,data_loader_dict,args.bounds_type,args.bitflip)
+        model = replace_act(model,args.name_relu_bound,args.name_serach_bound,data_loader_dict,args.bounds_type,args.bitflip)
         # print(model)
         print("model accuracy in {} format = {} after replace ReLU activcation functions".format(args.bitflip,eval(model,data_loader_dict)))
         for fault_rate in args.fault_rates:

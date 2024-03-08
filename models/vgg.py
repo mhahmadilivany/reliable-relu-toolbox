@@ -43,12 +43,12 @@ class VGG(nn.Module):
     def extract_feature(self, x, preReLU=False):
 
         feat1 = self.features(x)
-        x = x.view(x.size(0), -1)
+        x = feat1.view(x.size(0), -1)
         out = self.linear1(x)
         # feat2 = self.relu1(x)
         # x = self.linear2(feat2)
         # feat3 = self.relu2_last(x)
-        return [feat1], out
+        return feat1, out
 
         if not preReLU:
             feat1 = F.relu(feat1)

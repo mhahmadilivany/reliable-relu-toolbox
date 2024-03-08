@@ -176,7 +176,7 @@ def build_data_loader(
         g = torch.Generator()
         g.manual_seed(937162211)
         rand_indexes = torch.randperm(len(sub_train_dataset), generator=g).tolist()
-        rand_indexes = rand_indexes[:10000]
+        rand_indexes = rand_indexes[:10000] # for alexnet and  vgg use 10000
         if  dataset=="cifar10":
             sub_train_dataset.data = [
                 sub_train_dataset.data[idx] for idx in rand_indexes
@@ -304,14 +304,14 @@ def build_model(
     return model_dict[name](n_classes=n_classes, dropout_rate=dropout_rate, **kwargs)
 
 
-def find_bounds(model:nn.Module, teacher_model, data_loader, name:str,bound_type:str,bitflip:str):
+def find_bounds(model:nn.Module, data_loader, name:str,bound_type:str,bitflip:str):
     search_bounds_dict={
         "ranger" : Ranger_bounds,
         "ftclip" : FtClipAct_bounds,
         'fitact' : fitact_bounds,
         'fader'  : fader_bounds
     }
-    return search_bounds_dict[name](model,teacher_model,data_loader,bound_type=bound_type,bitflip=bitflip)
+    return search_bounds_dict[name](model,data_loader,bound_type=bound_type,bitflip=bitflip)
 
 def replace_act_all(model:nn.Module,relu_bound,bounds,tresh,alpha=None, name='')->nn.Module:
     for name1,layer in model.named_children():
@@ -335,14 +335,14 @@ def replace_act_all(model:nn.Module,relu_bound,bounds,tresh,alpha=None, name='')
             name+=name1
             replace_act_all(layer,relu_bound,bounds,tresh,alpha,name)               
     return model  
-def replace_act(model:nn.Module ,teacher_model, name_relu_bound:str, name_serach_bound:str,data_loader,bound_type:str,bitflip:str)->nn.Module:
+def replace_act(model:nn.Module, name_relu_bound:str, name_serach_bound:str,data_loader,bound_type:str,bitflip:str)->nn.Module:
     replace_act_dict={
         'zero' : bounded_relu_zero,
         'tresh': bounded_relu_tresh,
         'fitact': bounded_relu_fitact,
         'fader' : bounded_relu_alpha
     }
-    bounds,tresh,alpha = find_bounds(copy.deepcopy(model),teacher_model,data_loader,name_serach_bound,bound_type,bitflip) 
+    bounds,tresh,alpha = find_bounds(copy.deepcopy(model),data_loader,name_serach_bound,bound_type,bitflip) 
     print(bounds)
     # print(bounds)
     # print(model)

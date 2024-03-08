@@ -20,7 +20,7 @@ def relu_hooks(model:nn.Module,name=''):
             name+=name1
             relu_hooks(layer,name)
              
-def Ranger_bounds(model:nn.Module,teacher_model, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
+def Ranger_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
     model.eval()
     iteration = True 
     results={}

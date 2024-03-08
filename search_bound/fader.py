@@ -32,7 +32,7 @@ parser.add_argument(
     "--gpu", type=str, default=None
 )  # used in single machine experiments
 
-def Ranger_bounds_fader(model:nn.Module,teacher_model, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
+def Ranger_bounds_fader(model:nn.Module, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
     model.eval()
     iteration = True 
     results={}
@@ -231,20 +231,19 @@ def load_state_dict_from_file(file: str) -> Dict[str, torch.Tensor]:
     if "state_dict" in checkpoint:
         checkpoint = checkpoint["state_dict"]
     return checkpoint
-def fader_bounds(model:nn.Module, teacher_model, train_loader, device="cuda", bound_type='layer', bitflip='float'):
+def fader_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer', bitflip='float'):
     model.eval()
-    teacher_model.eval()
     original_model  = copy.deepcopy(model)
-    results,tresh,_ =  Ranger_bounds_fader(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip) # FtClipAct_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
+    results,tresh,_ =  Ranger_bounds_fader(copy.deepcopy(model),train_loader,device,bound_type,bitflip) # FtClipAct_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
     len_relu = len(results)
     if bound_type =="layer":
         for i,(key, val) in enumerate(results.items()):
-                if i<len_relu-1:
+                if i<len_relu - 1:
                     results[key] = torch.max(val)  
                     tresh[key] = torch.min(tresh[key]) 
     print(results)        
     model = replace_act_all(model,results,tresh)
-    torch.save(model.state_dict(), "temp.pth")      
+    torch.save(model.state_dict(), "temp_{}_{}_{}.pth".format(bound_type,bitflip,original_model.__class__.__name__))      
     eval(model,train_loader)
     warnings.filterwarnings("ignore")
     args, opt = parser.parse_known_args()
@@ -276,7 +275,7 @@ def fader_bounds(model:nn.Module, teacher_model, train_loader, device="cuda", bo
     #         param.requires_grad=False 
      
     weight_decay_list =[4e-1,4e-2,4e-3,4e-4,4e-5,4e-6,4e-7,4e-8,4e-9,4e-10,4e-11]
-    model = train(model,original_model,train_loader,weight_decay_list)
+    model = train(model,original_model,train_loader,weight_decay_list,bound_type,bitflip)
     for name, param in model.named_parameters():
         if np.any([key in name for key in ["weight", "norm","bias"]]):
             param.requires_grad=False
@@ -329,7 +328,7 @@ def L1_reg(model):
     return L1_term
 
 
-def train(model,original_model,data_provider,weight_decay_list,base_lr=0.1,warmup_epochs=5,n_epochs=15 , treshold=torch.tensor(1.5)):
+def train(model,original_model,data_provider,weight_decay_list,base_lr=0.01,warmup_epochs=5,n_epochs=5 , treshold=torch.tensor(2.2),bound_type = "layer" , bitflip = "fixed"):
     val_info_dict = eval(model, data_provider)
     best_acc =torch.tensor(val_info_dict["val_top1"])
     for name, param in reversed(list(model.named_parameters())):
@@ -337,8 +336,16 @@ def train(model,original_model,data_provider,weight_decay_list,base_lr=0.1,warmu
             param.requires_grad=False
             continue
         else:
-            print(name)
+            print(param.nelement() ,name)
             param.requires_grad=True 
+            if param.nelement() > 1 : 
+                base_lr = 0.01
+                n_epochs = 100
+                warmup_epochs=5
+            else:
+                base_lr = 0.1   
+                n_epochs = 10
+                warmup_epochs=5
         for wd in weight_decay_list:
             params_with_wd=[]
             for name, param in model.named_parameters():
@@ -387,11 +394,11 @@ def train(model,original_model,data_provider,weight_decay_list,base_lr=0.1,warmu
             val_info_dict = eval(model, data_provider)
             if torch.abs(best_acc - val_info_dict["val_top1"]) <=treshold:
                 print(wd)
-                torch.save(model.state_dict(), "temp.pth")
+                torch.save(model.state_dict(), "temp_{}_{}_{}.pth".format(bound_type,bitflip,original_model.__class__.__name__))
                 param.requires_grad = False
                 break
             else:
-                model.load_state_dict(torch.load("temp.pth"))  
+                model.load_state_dict(torch.load("temp_{}_{}_{}.pth".format(bound_type,bitflip,original_model.__class__.__name__)))  
     return model
 
 
@@ -428,13 +435,16 @@ def train_one_epoch(
             optimizer.zero_grad()
             with torch.no_grad():
                 teacher_output = original_model(images).detach()
+                feat_t,_ = original_model.extract_feature(images)
                 teacher_logits = F.softmax(teacher_output, dim=1)
+            feat_s,_ = model.extract_feature(images)    
             nat_logits = model(images)
             kd_loss = cross_entropy_loss_with_soft_target(
                         nat_logits,teacher_logits
                     )
+            k_loss = distillation_loss(feat_s,feat_t,images,'cuda')
             nat_logits = model(images)
-            loss =  0.9 * criterion(nat_logits,labels)  + 0.1 * kd_loss # +  0.00004 * l2_bounds #
+            loss =  0.8 * criterion(nat_logits,labels)  + 0.1 * kd_loss  +  0.0004 * l2_bounds + 0.1 * k_loss #
             loss.backward()
             # for name,par in model.named_parameters():
             #     if par.requires_grad == True:

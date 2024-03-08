@@ -107,9 +107,9 @@ def replace_act(model:nn.Module,bounds,tresh,name='')->nn.Module:
 
 
 
-def fitact_bounds(model:nn.Module, teacher_model,train_loader, device="cuda", bound_type='layer',bitflip='float'):
+def fitact_bounds(model:nn.Module,train_loader, device="cuda", bound_type='layer',bitflip='float'):
     model.eval()
-    results,tresh,_ = Ranger_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
+    results,tresh,_ = Ranger_bounds(copy.deepcopy(model),train_loader,device,bound_type,bitflip)
     # print(results['relu1'])
     model = replace_act(model,results,tresh)
     # print(model)

@@ -16,6 +16,9 @@ from models import (
    ResNet50,
    VGG16,
    LeNet_cifar,
+   AlexNet_cifar100,
+   VGG16_cifar100,
+   ResNet50_cifar100,
 )
 from q_models import (
     Lenet_q,
@@ -176,7 +179,7 @@ def build_data_loader(
         g = torch.Generator()
         g.manual_seed(937162211)
         rand_indexes = torch.randperm(len(sub_train_dataset), generator=g).tolist()
-        rand_indexes = rand_indexes[:10000] # for alexnet and  vgg use 10000
+        rand_indexes = rand_indexes[:3000] # for alexnet and  vgg use 3000 for ftclip 1000
         if  dataset=="cifar10":
             sub_train_dataset.data = [
                 sub_train_dataset.data[idx] for idx in rand_indexes
@@ -294,6 +297,9 @@ def build_model(
         "vgg16_q" : VGG16_q ,
         "resnet50_q" : ResNet50_q, 
         "alexnet_q" : AlexNet_model_q, 
+        "alexnet_cifar100" : AlexNet_cifar100, 
+        "vgg16_cifar100":VGG16_cifar100,
+        "resnet50_cifar100": ResNet50_cifar100,
     }
 
     name = name.split("-")

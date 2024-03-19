@@ -30,15 +30,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()
 
-parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="pretrained_models/vgg16_cifar10_c")
-parser.add_argument("--dataset", type=str, help="dataset",default="cifar10")
+parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="pretrained_models/resnet50_cifar100")
+parser.add_argument("--dataset", type=str, help="dataset",default="cifar100")
 parser.add_argument("--n_worker", type=int, default=8)
-parser.add_argument("--data_path", type=str, help="data_path",default="./dataset/cifar10/CIFAR10")
+parser.add_argument("--data_path", type=str, help="data_path",default="./dataset/cifar100/CIFAR100")
 parser.add_argument("--base_batch_size", type=int, default=128)
 parser.add_argument(
     "--gpu", type=str, default=None
 )  # used in single machine experiments
-parser.add_argument("--name", type=str, help="model name",default="vgg16")
+parser.add_argument("--name", type=str, help="model name",default="resnet50_cifar100")
 parser.add_argument("--init_type", type=str, help="init_type",default="he_fout")
 parser.add_argument("--dropout_rate", type=float, default=0.0)
 parser.add_argument("--manual_seed", type=int, default=0)
@@ -219,8 +219,8 @@ def train(
     resume=False,
     base_lr=0.01,
     warmup_epochs = 5 ,
-    n_epochs = 100,
-    weight_decay=4.0e-5
+    n_epochs = 300,
+    weight_decay=5e-4
 ):
     
     params_without_wd = []

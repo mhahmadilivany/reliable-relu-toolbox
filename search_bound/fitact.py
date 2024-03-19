@@ -161,12 +161,13 @@ def train(
     model: nn.Module,
     data_provider,
     path: str,
-    base_lr=0.01,
+    base_lr=0.001,
     warmup_epochs = 0 ,
     n_epochs = 150,
     weight_decay = 4e-9
 
 ):
+    
     params_without_wd = []
     params_with_wd = []
     for name, param in model.named_parameters():
@@ -292,7 +293,7 @@ def train_one_epoch(
                         l2_bounds += torch.mean(torch.pow(param, 2))
             optimizer.zero_grad()
             output = model(images)
-            loss = criterion(output, labels) + 0.0004 * l2_bounds
+            loss = criterion(output, labels) + 4e-9 * l2_bounds
             loss.backward()
             # for par in model.parameters():
             #     print(par.grad)

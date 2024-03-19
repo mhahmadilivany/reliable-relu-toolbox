@@ -61,7 +61,10 @@ parser.add_argument(
         "lenet_cifar10_q", 
         "vgg16_q",
         "resnet50_q", 
-        "alexnet_q", 
+        "alexnet_q",
+        "alexnet_cifar100" ,
+        "resnet50_cifar100" ,
+        "vgg16_cifar100" 
     ],
 )
 parser.add_argument(
@@ -234,16 +237,6 @@ if __name__ == "__main__":
     #     output = model(data)
     #     for key,val in activation.items():
     #         results[key].append(val)
-    # ################## for neuron ######################    
-    # # for i,(key,val) in enumerate(results.items()):
-    # #     values[key].append(torch.max(torch.cat(results[key]).flatten(start_dim=1),dim=0))
-
-    # #     print(values[key][0].values.shape)
-    # # fig, axs = plt.subplots(len(values),1,figsize=(20,5))        
-    # # for i,key in enumerate(values.keys()):
-    # #     axs[i].hist(values[key][0].values.detach().cpu().numpy(),histtype='stepfilled', alpha=0.3, color = 'b')
-    # # plt.savefig("dist_"+args.name_serach_bound)    
-    # # ##################################################  
     # del results    
     # for key in values.keys():
     #     mask = torch.where(values[key][0]<=1.0)

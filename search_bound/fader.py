@@ -328,7 +328,7 @@ def L1_reg(model):
     return L1_term
 
 
-def train(model,original_model,data_provider,weight_decay_list,base_lr=0.01,warmup_epochs=5,n_epochs=5 , treshold=torch.tensor(2.2),bound_type = "layer" , bitflip = "fixed"):
+def train(model,original_model,data_provider,weight_decay_list,base_lr=0.01,warmup_epochs=5,n_epochs=5 , treshold=torch.tensor(1.5),bound_type = "layer" , bitflip = "fixed"):
     val_info_dict = eval(model, data_provider)
     best_acc =torch.tensor(val_info_dict["val_top1"])
     for name, param in reversed(list(model.named_parameters())):
@@ -338,12 +338,12 @@ def train(model,original_model,data_provider,weight_decay_list,base_lr=0.01,warm
         else:
             print(param.nelement() ,name)
             param.requires_grad=True 
-            if param.nelement() > 1 : 
-                base_lr = 0.01
+            if param.nelement() > 3 : 
+                base_lr = 0.001
                 n_epochs = 100
                 warmup_epochs=5
             else:
-                base_lr = 0.1   
+                base_lr = 0.01   
                 n_epochs = 10
                 warmup_epochs=5
         for wd in weight_decay_list:
@@ -435,16 +435,16 @@ def train_one_epoch(
             optimizer.zero_grad()
             with torch.no_grad():
                 teacher_output = original_model(images).detach()
-                feat_t,_ = original_model.extract_feature(images)
+                # feat_t,_ = original_model.extract_feature(images)
                 teacher_logits = F.softmax(teacher_output, dim=1)
-            feat_s,_ = model.extract_feature(images)    
+            # feat_s,_ = model.extract_feature(images)    
             nat_logits = model(images)
             kd_loss = cross_entropy_loss_with_soft_target(
                         nat_logits,teacher_logits
                     )
-            k_loss = distillation_loss(feat_s,feat_t,images,'cuda')
+            # k_loss = distillation_loss(feat_s,feat_t,images,'cuda')
             nat_logits = model(images)
-            loss =  0.8 * criterion(nat_logits,labels)  + 0.1 * kd_loss  +  0.0004 * l2_bounds + 0.1 * k_loss #
+            loss =  0.8 * criterion(nat_logits,labels) +0.1 * kd_loss  +  4e-8 * l2_bounds #+ 0.1 * k_loss #
             loss.backward()
             # for name,par in model.named_parameters():
             #     if par.requires_grad == True:

@@ -1,7 +1,27 @@
 k negative larger is better than negative smaller in fitact (neuron-fixed)
+
+CIFAR10
+
 Alexnet
 fit act neuron  use 4e-9 , Lambda = 0.004
 fit act layer use  4e-9 , lambda = 0.0004
 VGG16
 fit act neuron  use 4e-9 , Lambda = 0.004
 fit act layer use  4e-9 , lambda = 0.0004
+Resnet50 
+fit act neuron  use 4e-9 , Lambda = 4e-9 lr = 0.001
+fit act layer use  4e-9 , lambda = 0.000004
+
+
+CIFAR100
+Alexnet
+fit act neuron  use 4e-9 , Lambda = 0.0004
+fit act layer use  4e-9 , lambda = 0.00004
+
+VGG16
+fit act neuron  use 4e-9 , Lambda = 0.00004
+fit act layer use  4e-9 , lambda = 0.00004
+
+Resnet50 
+fit act neuron  use 4e-9 , Lambda = 4e-9 lr = 0.001
+fit act layer use  4e-9 , lambda = 0.000004

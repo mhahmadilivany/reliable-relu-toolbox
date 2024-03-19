@@ -55,7 +55,7 @@ def replace_act(model:nn.Module,bounds,key,tresh,name='')->nn.Module:
             name+=name1
             replace_act(layer,bounds,key,tresh,name)               
     return model  
-def FtClipAct_bounds(model:nn.Module, data_loader, device="cuda",bound_type='layer',bitflip='float',N=5, M = 4,fault_rates=[1e-7,1e-6,3e-6,1e-5,3e-5], delta_b=0.1):
+def FtClipAct_bounds(model:nn.Module, data_loader, device="cuda",bound_type='layer',bitflip='float',N=4, M = 3,fault_rates=[1e-7,1e-6,3e-6,1e-5,3e-5], delta_b=0.2):
     layer_idx = 0
     model.eval()
     model.cuda()

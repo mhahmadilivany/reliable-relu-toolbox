@@ -1,6 +1,6 @@
 <h1 align="center">
   <br/>
-    Reliable ReLU Activation Function Tollbox (R$^2$AcT) To Enhance Resilience of DNNs 
+    Reliable ReLU Activation Function Tollbox ($R^2$AcT) To Enhance Resilience of DNNs 
   </br>
 </h1>
 <p align="center">

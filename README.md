@@ -21,3 +21,53 @@ RRT enables users to find a clipped ReLU activation function based on the differ
 * **FtClipAct** ([paper](https://arxiv.org/pdf/1912.00941) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/ftclip.py)).
 * **Ranger** ([paper](https://arxiv.org/pdf/2003.13874) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/ranger.py)).
 
+## Usage
+
+Download on PyPI [here]().
+
+### Installing
+
+**From Pip**
+
+Install using `pip install rrt`
+
+**From Source**
+
+Download this repository into your project folder.
+
+### Importing
+
+Import the entire package:
+
+```python
+import rrt
+```
+
+Import a specific module:
+
+```python
+from rrt.search_bound import proact_bounds 
+```
+
+### Testing
+-- running and evaluating algorithms: 
+```python
+torchpack dist-run -np 1 python rrt.search.py --dataset dataset name --data_path path to the dataset --model then name of the model --init_from pretrained file path \
+                      --name_relu_bound name of bounded relu --name_serach_bound name of search algorithm --bounds_type type of thresholds --bitflip value representaiton
+```
+
+
+## Code
+
+### Structure
+
+The main source code of framework is held in `src/rrt`, which carries `search_bounds`, `relu_bounds` , `extended pytorchfi` and other  implementations.
+
+
+## Citation
+
+View the [published paper](). If you use or reference RRT, please cite:
+
+```
+
+```

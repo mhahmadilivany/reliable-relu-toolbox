@@ -1,5 +1,5 @@
 <h1 align="center">
   <br/>
-    Reliable ReLU activation Function 
+    Reliable ReLU Activation Function To Enhance Resilience of DNNs 
   </br>
 </h1>

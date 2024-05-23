@@ -1,5 +1,5 @@
 [project]
-name = "reliable-relu-toolbox"
+name = "rrt"
 version = "0.0.1"
 authors = [
   { name="Seyedhamidreza Mousavi", email="seyedhamidreza.mousavi@mdu.se" },

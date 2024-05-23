@@ -19,5 +19,5 @@ $R^2$-AcT enables users to find a clipped ReLU activation function based on the 
 * **ProAct** (the proposed algorithm) ([code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/search_bound/proact.py)).
 * **FitAct** ([paper](https://arxiv.org/pdf/2112.13544) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/search_bound/fitact.py)).
 * **FtClipAct** ([paper](https://arxiv.org/pdf/1912.00941) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/search_bound/ftclip.py)).
-* **Ranger** ([paper]https://arxiv.org/pdf/2003.13874) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/search_bound/ranger.py)).
+* **Ranger** ([paper](https://arxiv.org/pdf/2003.13874) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/search_bound/ranger.py)).
 

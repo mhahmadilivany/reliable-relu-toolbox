@@ -7,7 +7,6 @@ import torch
 import torch.nn as nn
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-from q_models.quantization import quan_Conv2d,quan_Linear
 from models.vgg import make_layers,cfg
 from models import (
    Lenet,
@@ -20,19 +19,11 @@ from models import (
    VGG16_cifar100,
    ResNet50_cifar100,
 )
-from q_models import (
-    Lenet_q,
-    VGG16_q,
-    ResNet50_q,
-    LeNet_cifar_q,
-    VGG_q,
-    AlexNet_model_q,
-)
 from relu_bound import (
     bounded_relu_zero,
     bounded_relu_tresh,
     bounded_relu_fitact,
-    bounded_relu_alpha
+    bounded_hyrelu_proact
 
 )
 
@@ -40,10 +31,10 @@ from search_bound import (
     FtClipAct_bounds,
     Ranger_bounds,
     fitact_bounds,
-    fader_bounds
+    proact_bounds
 
 )
-__all__ = ["build_data_loader", "build_model", "replace_act","find_bounds", "change_quan_bitwidth"]
+__all__ = ["build_data_loader", "build_model", "replace_act","find_bounds"]
 
 
 def build_data_loader(
@@ -292,11 +283,6 @@ def build_model(
         "vgg16": VGG16,
         "resnet50": ResNet50,
         "alexnet": AlexNet_model,
-        "lenet_q" : Lenet_q, 
-        "lenet_cifar10_q" : LeNet_cifar_q, 
-        "vgg16_q" : VGG16_q ,
-        "resnet50_q" : ResNet50_q, 
-        "alexnet_q" : AlexNet_model_q, 
         "alexnet_cifar100" : AlexNet_cifar100, 
         "vgg16_cifar100":VGG16_cifar100,
         "resnet50_cifar100": ResNet50_cifar100,
@@ -315,7 +301,7 @@ def find_bounds(model:nn.Module, data_loader, name:str,bound_type:str,bitflip:st
         "ranger" : Ranger_bounds,
         "ftclip" : FtClipAct_bounds,
         'fitact' : fitact_bounds,
-        'fader'  : fader_bounds
+        'proact'  : proact_bounds
     }
     return search_bounds_dict[name](model,data_loader,bound_type=bound_type,bitflip=bitflip)
 
@@ -346,21 +332,13 @@ def replace_act(model:nn.Module, name_relu_bound:str, name_serach_bound:str,data
         'zero' : bounded_relu_zero,
         'tresh': bounded_relu_tresh,
         'fitact': bounded_relu_fitact,
-        'fader' : bounded_relu_alpha
+        'proact' : bounded_hyrelu_proact
     }
     bounds,tresh,alpha = find_bounds(copy.deepcopy(model),data_loader,name_serach_bound,bound_type,bitflip) 
     print(bounds)
-    # print(bounds)
-    # print(model)
     model = replace_act_all(model,replace_act_dict[name_relu_bound],bounds,tresh,alpha,name='')
     return model                
                     
-def change_quan_bitwidth(model, n_bit):
-    '''This script change the quantization bit-width of entire model to n_bit'''
-    for m in model.modules():
-        if isinstance(m, quan_Conv2d) or isinstance(m, quan_Linear):
-            m.N_bits = n_bit
-    return
 
 if __name__=="__main__":
     model = build_model("lenet") 

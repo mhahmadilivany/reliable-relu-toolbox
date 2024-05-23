@@ -1,7 +1,6 @@
 import sys
 import torch.nn as nn
 import torch
-import copy
 import sys;
 activation={}
 def get_activation(name):
@@ -50,26 +49,9 @@ def Ranger_bounds(model:nn.Module, train_loader, device="cuda", bound_type='laye
             results[key] = torch.max(val)  
             tresh[key] = torch.min(tresh[key]) 
             
-    # for key, val in results.items(): 
-    #     print(val.max(),val.min())   
-    #     import matplotlib.pyplot as plt
-    #     plt.figure(key)
-    #     n, bins, patches = plt.hist(x=val.flatten().detach().cpu().numpy(), range=(val.flatten().detach().cpu().numpy().min(), val.flatten().detach().cpu().numpy().max()))
-    #     plt.savefig('float{}.png'.format(key))
        
     return results,tresh,None
 
 
    
 
-
-
-# if __name__ == "__main__":
-#     data,_ = setup.build_data_loader('cifar10',32,16)
-#     model = setup.build_model('vgg16')
-#     # print(model)
-#     # exit()
-#     result,tresh = Ranger_bounds(model,data)
-#     for key,val in result.items():
-#         print(val)
-#     # print(result)

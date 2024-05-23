@@ -4,11 +4,8 @@ import numpy as np
 import torch
 import copy
 import torch.nn as nn 
-sys.path.append("/proj/berzelius-2023-29/users/x_hammo/NetAug/FADER") 
-from relu_bound.bound_tresh import bounded_relu_tresh
 import setup 
 from pytorchfi.core import FaultInjection
-from q_models.quantization import quan_Conv2d,quan_Linear
 from utils.distributed import DistributedMetric
 from tqdm import tqdm
 from torchpack import distributed as dist
@@ -401,39 +398,4 @@ def multi_weight_inj_fixed(pfi, sdc_p=1e-5, function1=bit_flip_weight_fixed,func
 
 
 
-#################################################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
-
-if __name__ =="__main__":
-    import os
-    dist.init()
-    torch.backends.cudnn.benchmark = True
-    torch.cuda.set_device(dist.local_rank())
-    data,_ = setup.build_data_loader('cifar10',32,100,data_path='dataset/cifar10/cifar10',num_replica=dist.size(),rank=dist.rank())
-    model = setup.build_model('resnet50',_)
-    checkpoint = load_state_dict_from_file("./pretrained_models/resnet50_cifar10/checkpoint/best.pt")
-    model.load_state_dict(checkpoint)
-    # print(model)
-    FtClipAct_bounds(model,data)
-    # print(model)
-    # result = FtClipAct_bounds(model,data)
-    # for key,val in result.items():
-    #     print(val.shape)
+###############################################################################################

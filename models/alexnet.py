@@ -1,14 +1,7 @@
-import sys
-import torch
-import torchvision
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torch.nn as nn
 from relu_bound.bound_relu import Relu_bound
-import math
-from typing import Any, Callable, List, Optional, Type,Union
-import torch.nn.functional as F
-import numpy
 class AlexNet_model(nn.Module):
     def __init__(self, n_classes=10,dropout_rate=0.0):
         super(AlexNet_model, self).__init__()

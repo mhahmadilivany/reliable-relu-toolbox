@@ -5,15 +5,13 @@ import copy
 import numpy as np
 import warnings
 import sys;
-sys.path.append("/proj/berzelius-2023-29/users/x_hammo/NetAug/FADER") 
 import setup 
-from relu_bound.bound_alpha import bounded_relu_alpha
+from relu_bound.bound_proact import bounded_hyrelu_proact
 from relu_bound.bound_zero import bounded_relu_zero
 import os
 import argparse
 from typing import Dict, Optional
 from relu_bound.bound_relu import Relu_bound
-from q_models.quantization import quan_Conv2d,quan_Linear
 from pytorchfi.weight_error_models import multi_weight_inj_float,multi_weight_inj_fixed,multi_weight_inj_int
 from utils.metric import accuracy,AverageMeter
 from utils.lr_scheduler import CosineLRwithWarmup
@@ -25,14 +23,14 @@ import time
 from tqdm import tqdm
 from torchpack import distributed as dist
 parser = argparse.ArgumentParser()
-parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="pretrained_models/lenet_mnist/fader")
+parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="pretrained_models/lenet_mnist")
 parser.add_argument("--base_batch_size", type=int, default=128)
 parser.add_argument("--manual_seed", type=int, default=0)
 parser.add_argument(
     "--gpu", type=str, default=None
 )  # used in single machine experiments
 
-def Ranger_bounds_fader(model:nn.Module, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
+def Ranger_bounds_proact(model:nn.Module, train_loader, device="cuda", bound_type='layer',bitflip = 'float'):
     model.eval()
     iteration = True 
     results={}
@@ -125,15 +123,15 @@ def replace_act_all(model:nn.Module,bounds,tresh,name='')->nn.Module:
             if isinstance(layer,nn.ReLU) and 'last' not in name1:
                 name_ = name1 + name
                 if tresh==None:
-                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh)   
+                    model._modules[name1] = bounded_hyrelu_proact(bounds[name_].detach(),tresh)   
                 else:    
-                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh[name_].detach())  
+                    model._modules[name1] = bounded_hyrelu_proact(bounds[name_].detach(),tresh[name_].detach())  
             elif isinstance(layer,nn.ReLU) and 'last'  in name1:
                 name_ = name1 + name
                 if tresh==None:
-                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh,k=-20)   
+                    model._modules[name1] = bounded_hyrelu_proact(bounds[name_].detach(),tresh,k=-20)   
                 else:    
-                    model._modules[name1] = bounded_relu_alpha(bounds[name_].detach(),tresh[name_].detach(),k=-20.0)  
+                    model._modules[name1] = bounded_hyrelu_proact(bounds[name_].detach(),tresh[name_].detach(),k=-20.0)  
 
         else:
             name+=name1
@@ -146,7 +144,7 @@ def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=2000,bitf
     pfi_model = FaultInjection(model, 
                             inputs.shape[0],
                             input_shape=[inputs.shape[1],inputs.shape[2],inputs.shape[3]],
-                            layer_types=[torch.nn.Conv2d, torch.nn.Linear ,Relu_bound,quan_Conv2d,quan_Linear],
+                            layer_types=[torch.nn.Conv2d, torch.nn.Linear ,Relu_bound],
                             total_bits= total_bits,
                             n_frac = n_frac, 
                             n_int = n_int, 
@@ -231,10 +229,10 @@ def load_state_dict_from_file(file: str) -> Dict[str, torch.Tensor]:
     if "state_dict" in checkpoint:
         checkpoint = checkpoint["state_dict"]
     return checkpoint
-def fader_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer', bitflip='float'):
+def proact_bounds(model:nn.Module, train_loader, device="cuda", bound_type='layer', bitflip='float'):
     model.eval()
     original_model  = copy.deepcopy(model)
-    results,tresh,_ =  Ranger_bounds_fader(copy.deepcopy(model),train_loader,device,bound_type,bitflip) # FtClipAct_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
+    results,tresh,_ =  Ranger_bounds_proact(copy.deepcopy(model),train_loader,device,bound_type,bitflip) # FtClipAct_bounds(copy.deepcopy(model),teacher_model,train_loader,device,bound_type,bitflip)
     len_relu = len(results)
     if bound_type =="layer":
         for i,(key, val) in enumerate(results.items()):
@@ -473,12 +471,3 @@ def train_one_epoch(
         "train_top1": train_top1.avg.item(),
         "train_loss": train_loss.avg.item(),
     }
-
-
-
-
-
-if __name__ == "__main__":
-    data,_ = setup.build_data_loader('mnist',28,16)
-    model = setup.build_model('lenet')
-    # print(model)

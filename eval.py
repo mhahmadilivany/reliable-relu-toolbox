@@ -5,8 +5,7 @@ import torch.backends.cudnn
 import torch.nn as nn
 from torchpack import distributed as dist
 
-from setup import build_data_loader, build_model,change_quan_bitwidth
-from q_models.quantization import quan_Conv2d,quan_Linear
+from setup import build_data_loader, build_model
 from train import eval,eval_fault
 from utils import load_state_dict_from_file
 
@@ -21,13 +20,6 @@ parser.add_argument(
     type=str,
     default="cifar10",
     choices=[
-        "imagenet",
-        "imagenet21k_winter_p",
-        "car",
-        "flowers102",
-        "food101",
-        "cub200",
-        "pets",
         "mnist",
         "cifar10",
         "cifar100"
@@ -54,13 +46,6 @@ parser.add_argument(
         "resnet50",
         "nin",
         "alexnet",
-        "lenet_q",
-        "lenet_cifar10_q",
-        "vgg16_q",
-        "resnet50_q",
-        "nin_q",
-        "alexnet_q",
-
     ],
 )
 

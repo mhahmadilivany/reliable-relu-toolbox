@@ -25,7 +25,6 @@ from pytorchfi.weight_error_models import multi_weight_inj_fixed,multi_weight_in
 from relu_bound.bound_relu import Relu_bound
 from pytorchfi.core import FaultInjection
 import random 
-from q_models.quantization import quan_Conv2d,quan_Linear
 import numpy as np
 import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser()

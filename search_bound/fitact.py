@@ -4,8 +4,7 @@ import torch
 import copy
 import numpy as np
 import warnings
-import sys;
-sys.path.append("/proj/berzelius-2023-29/users/x_hammo/NetAug/FADER") 
+import sys; 
 import setup 
 from relu_bound.bound_fitact import bounded_relu_fitact
 import os
@@ -323,13 +322,3 @@ def train_one_epoch(
     }
 
 
-
-
-
-
-
-if __name__ == "__main__":
-    data,_ = setup.build_data_loader('mnist',28,16)
-    model = setup.build_model('lenet')
-    # print(model)
-    fitact_bounds(model,data)

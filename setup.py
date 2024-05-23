@@ -13,7 +13,7 @@ setuptools.setup(
     long_description_content_type = "text/markdown",
     url = "https://github.com/hamidmousavi0/reliable-relu-toolbox",
     project_urls = {
-        "Bug Tracker": "package issues URL",
+        "Bug Tracker": "https://github.com/hamidmousavi0/reliable-relu-toolbox/issues",
     },
     classifiers = [
         "Programming Language :: Python :: 3",

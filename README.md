@@ -22,7 +22,7 @@ RReLU includes all state-of-the-art activation restriction methods. These method
 
 ## Usage
 
-Download on PyPI [here]().
+Download on PyPI [here](https://pypi.org/project/rrelu/).
 
 ### Installing
 

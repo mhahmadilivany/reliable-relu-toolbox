@@ -4,7 +4,6 @@ import numpy as np
 import torch
 import copy
 import torch.nn as nn 
-import setup 
 from rrelu.pytorchfi.core import FaultInjection
 from rrelu.utils.distributed import DistributedMetric
 from tqdm import tqdm

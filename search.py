@@ -5,9 +5,9 @@ import torch.nn as nn
 from fxpmath import Fxp
 from torchpack import distributed as dist
 import copy
-from rrelu.setup import build_data_loader, build_model ,replace_act,replace_act_all
+from setups import build_data_loader, build_model ,replace_act,replace_act_all
 from rrelu.utils import load_state_dict_from_file
-from rrelu.train import eval_fault,eval
+from train import eval_fault,eval
 import random
 import numpy as np 
 parser = argparse.ArgumentParser()

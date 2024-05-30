@@ -5,7 +5,6 @@ import copy
 import numpy as np
 import warnings
 import sys;
-import setup 
 from rrelu.relu_bound.bound_proact import bounded_hyrelu_proact
 from rrelu.relu_bound.bound_zero import bounded_relu_zero
 import os

@@ -5,7 +5,6 @@ import copy
 import numpy as np
 import warnings
 import sys; 
-import setup 
 from rrelu.relu_bound.bound_fitact import bounded_relu_fitact
 import os
 import argparse

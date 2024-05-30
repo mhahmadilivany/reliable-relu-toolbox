@@ -4,7 +4,7 @@ import torch
 import torch.distributed
 from torchpack import distributed
 
-from utils.misc import list_mean, list_sum
+from rrelu.utils.misc import list_mean, list_sum
 
 __all__ = ["ddp_reduce_tensor", "DistributedMetric"]
 def ddp_reduce_tensor(

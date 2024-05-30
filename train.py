@@ -10,7 +10,7 @@ import os
 import time
 import warnings
 from typing import Dict, Optional
-from rrelu.setups import build_data_loader,build_model
+from rrelu.setup import build_data_loader,build_model
 import numpy as np
 import torch
 import torch.nn as nn

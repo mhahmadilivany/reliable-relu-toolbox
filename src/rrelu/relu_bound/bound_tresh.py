@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn as nn
-from relu_bound.bound_relu import Relu_bound
+from rrelu.relu_bound.bound_relu import Relu_bound
 class bounded_relu_tresh(nn.Module,Relu_bound):
     '''
     Bound the relu activatoin and back the values to treshold

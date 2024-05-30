@@ -338,11 +338,7 @@ def replace_act(model:nn.Module, name_relu_bound:str, name_serach_bound:str,data
     print(bounds)
     model = replace_act_all(model,replace_act_dict[name_relu_bound],bounds,tresh,alpha,name='')
     return model                
-                    
-
-if __name__=="__main__":
-    model = build_model("lenet") 
-    replace_act(model,"a","a")       
+                         
     
 
 

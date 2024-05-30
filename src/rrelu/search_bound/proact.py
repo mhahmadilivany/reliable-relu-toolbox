@@ -201,7 +201,7 @@ def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=2000,bitf
             "fault_rate": fault_rate,
         }
     return val_results
-from models import (
+from rrelu.models import (
 
    ResNet50,
 )

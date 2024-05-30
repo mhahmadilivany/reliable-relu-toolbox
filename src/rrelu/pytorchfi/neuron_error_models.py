@@ -5,8 +5,8 @@ import random
 
 import torch
 
-from pytorchfi import core
-from pytorchfi.util import random_value
+from rrelu.pytorchfi import core
+from rrelu.pytorchfi.util import random_value
 
 # Helper Functions
 

@@ -2,8 +2,8 @@
 
 import random
 from fxpmath import Fxp
-import pytorchfi.core as core 
-from pytorchfi.util import random_value
+import rrelu.pytorchfi.core as core 
+from rrelu.pytorchfi.util import random_value
 import logging
 import torch
 import numpy as np

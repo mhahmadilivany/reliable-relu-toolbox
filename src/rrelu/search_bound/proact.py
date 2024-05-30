@@ -6,18 +6,18 @@ import numpy as np
 import warnings
 import sys;
 import setup 
-from relu_bound.bound_proact import bounded_hyrelu_proact
-from relu_bound.bound_zero import bounded_relu_zero
+from rrelu.relu_bound.bound_proact import bounded_hyrelu_proact
+from rrelu.relu_bound.bound_zero import bounded_relu_zero
 import os
 import argparse
 from typing import Dict, Optional
-from relu_bound.bound_relu import Relu_bound
-from pytorchfi.weight_error_models import multi_weight_inj_float,multi_weight_inj_fixed,multi_weight_inj_int
-from utils.metric import accuracy,AverageMeter
-from utils.lr_scheduler import CosineLRwithWarmup
-from utils.distributed import DistributedMetric
+from rrelu.relu_bound.bound_relu import Relu_bound
+from rrelu.pytorchfi.weight_error_models import multi_weight_inj_float,multi_weight_inj_fixed,multi_weight_inj_int
+from rrelu.utils.metric import accuracy,AverageMeter
+from rrelu.utils.lr_scheduler import CosineLRwithWarmup
+from rrelu.utils.distributed import DistributedMetric
 import random
-from pytorchfi.core import FaultInjection
+from rrelu.pytorchfi.core import FaultInjection
 import torch.nn.functional as F
 import time
 from tqdm import tqdm

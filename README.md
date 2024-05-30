@@ -1,6 +1,6 @@
 <h1 align="center">
   <br/>
-    Reliable ReLU Toolbox (RRT) To Enhance Resilience of DNNs 
+    Reliable ReLU Toolbox (RReLU) To Enhance Resilience of DNNs 
   </br>
 </h1>
 <p align="center">
@@ -11,9 +11,9 @@
 </p>
 
 ## Background
-The Reliability-Resilient Tool (RRT) is a powerful reliability tool designed to enhance the resiliency of deep neural networks (DNNs) by generating reliable ReLU activation functions. Implemented for the popular PyTorch deep learning platform, RRT allows users to find a clipped ReLU activation function using various methods. This tool is highly versatile for dependability and reliability research, with applications ranging from resiliency analysis of classification networks to training resilient models and improving DNN interpretability.
+The Reliable ReLU Toolbox (RReLU) is a powerful reliability tool designed to enhance the resiliency of deep neural networks (DNNs) by generating reliable ReLU activation functions. Implemented for the popular PyTorch deep learning platform, RReLU allows users to find a clipped ReLU activation function using various methods. This tool is highly versatile for dependability and reliability research, with applications ranging from resiliency analysis of classification networks to training resilient models and improving DNN interpretability.
 
-RRT includes all state-of-the-art activation restriction methods. These methods offer several advantages: they do not require retraining the entire model, avoid the complexity of fault-aware training, and are non-intrusive, meaning they do not necessitate any changes to an accelerator. RRT serves as the research code accompanying the paper [insert paper title], and it includes implementations of the following algorithms:
+RReLU includes all state-of-the-art activation restriction methods. These methods offer several advantages: they do not require retraining the entire model, avoid the complexity of fault-aware training, and are non-intrusive, meaning they do not necessitate any changes to an accelerator. RReLU serves as the research code accompanying the paper [insert paper title], and it includes implementations of the following algorithms:
 
 * **ProAct** (the proposed algorithm) ([code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/proact.py)).
 * **FitAct** ([paper](https://arxiv.org/pdf/2112.13544) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/fitact.py)).
@@ -28,7 +28,7 @@ Download on PyPI [here]().
 
 **From Pip**
 
-Install using `pip install rrt`
+Install using `pip install rrelu`
 
 **From Source**
 
@@ -39,20 +39,20 @@ Download this repository into your project folder.
 Import the entire package:
 
 ```python
-import rrt
+import rrelu
 ```
 
 Import a specific module:
 
 ```python
-from rrt.search_bound import proact_bounds 
+from rrelu.search_bound import proact_bounds 
 ```
 
 ### Testing
 -- running and evaluating algorithms: 
 ```python
-torchpack dist-run -np 1 python rrt.search.py --dataset dataset name --data_path path to the dataset --model then name of the model --init_from pretrained file path \
-                      --name_relu_bound name of bounded relu --name_serach_bound name of search algorithm --bounds_type type of thresholds --bitflip value representaiton
+torchpack dist-run -np 1 python rrt.search.py --dataset "dataset name (CIFAR10, CIFAR100)" --data_path "path to the dataset" --model "name of the model" --init_from "pretrained file path" \
+                      --name_relu_bound "name of bounded relu" --name_serach_bound "name of the search algorithm" --bounds_type "type of thresholds" --bitflip "value representaiton"
 ```
 
 

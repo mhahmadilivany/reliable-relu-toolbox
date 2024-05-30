@@ -3,27 +3,27 @@ import torch.optim as optim
 import torch
 from torch import autograd
 from typing import Dict
-from utils.distributed import DistributedMetric
+from rrelu.utils.distributed import DistributedMetric
 import argparse
 import copy
 import os
 import time
 import warnings
 from typing import Dict, Optional
-from setup import build_data_loader,build_model
+from rrelu.setup import build_data_loader,build_model
 import numpy as np
 import torch
 import torch.nn as nn
 import yaml
 from torchpack import distributed as dist
 from tqdm import tqdm
-from utils.metric import accuracy,AverageMeter
-from utils.lr_scheduler import CosineLRwithWarmup
-from utils.init import load_state_dict,init_modules
-from utils import load_state_dict_from_file
-from pytorchfi.weight_error_models import multi_weight_inj_fixed,multi_weight_inj_float,multi_weight_inj_int
-from relu_bound.bound_relu import Relu_bound
-from pytorchfi.core import FaultInjection
+from rrelu.utils.metric import accuracy,AverageMeter
+from rrelu.utils.lr_scheduler import CosineLRwithWarmup
+from rrelu.utils.init import load_state_dict,init_modules
+from rrelu.utils import load_state_dict_from_file
+from rrelu.pytorchfi.weight_error_models import multi_weight_inj_fixed,multi_weight_inj_float,multi_weight_inj_int
+from rrelu.relu_bound.bound_relu import Relu_bound
+from rrelu.pytorchfi.core import FaultInjection
 import random 
 import numpy as np
 import matplotlib.pyplot as plt

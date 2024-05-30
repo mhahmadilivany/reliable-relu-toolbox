@@ -5,7 +5,7 @@ import torch.backends.cudnn
 import torch.nn as nn
 from torchpack import distributed as dist
 
-from setups import build_data_loader, build_model
+from rrelu.setups import build_data_loader, build_model
 from train import eval,eval_fault
 from rrelu.utils import load_state_dict_from_file
 

@@ -21,8 +21,8 @@ RReLU includes all state-of-the-art activation restriction methods. These method
 * **Ranger** ([paper](https://arxiv.org/pdf/2003.13874) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/ranger.py)).
 
 ## Usage
-
-Download on PyPI [here](https://pypi.org/project/rrelu/).
+If you want to use the bounded relu functions and search algorithms you can 
+Download the rrelu on PyPI [here](https://pypi.org/project/rrelu/).
 
 ### Installing
 
@@ -31,7 +31,6 @@ Download on PyPI [here](https://pypi.org/project/rrelu/).
 Install using `pip install rrelu`
 
 **From Source**
-
 Download this repository into your project folder.
 
 ### Importing

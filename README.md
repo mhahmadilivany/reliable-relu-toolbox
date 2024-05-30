@@ -51,7 +51,7 @@ from rrelu.search_bound import proact_bounds
 ### Testing
 -- running and evaluating algorithms: 
 ```python
-torchpack dist-run -np 1 python rrt.search.py --dataset "dataset name (CIFAR10, CIFAR100)" --data_path "path to the dataset" --model "name of the model" --init_from "pretrained file path" \
+torchpack dist-run -np 1 python rrelu.search.py --dataset "dataset name (CIFAR10, CIFAR100)" --data_path "path to the dataset" --model "name of the model" --init_from "pretrained file path" \
                       --name_relu_bound "name of bounded relu" --name_serach_bound "name of the search algorithm" --bounds_type "type of thresholds" --bitflip "value representaiton"
 ```
 
@@ -60,12 +60,12 @@ torchpack dist-run -np 1 python rrt.search.py --dataset "dataset name (CIFAR10, 
 
 ### Structure
 
-The main source code of framework is held in `src/rrt`, which carries `search_bounds`, `relu_bounds` , `extended pytorchfi` and other  implementations.
+The main source code of framework is held in `src/rrelu`, which carries `search_bounds`, `relu_bounds` , `extended pytorchfi` and other  implementations.
 
 
 ## Citation
 
-View the [published paper](). If you use or reference RRT, please cite:
+View the [published paper](). If you use or reference rrelu, please cite:
 
 ```
 

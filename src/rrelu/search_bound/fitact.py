@@ -6,13 +6,13 @@ import numpy as np
 import warnings
 import sys; 
 import setup 
-from relu_bound.bound_fitact import bounded_relu_fitact
+from rrelu.relu_bound.bound_fitact import bounded_relu_fitact
 import os
 import argparse
-from utils.metric import accuracy,AverageMeter
-from utils.lr_scheduler import CosineLRwithWarmup
-from utils.distributed import DistributedMetric
-from search_bound.ranger import Ranger_bounds
+from rrelu.utils.metric import accuracy,AverageMeter
+from rrelu.utils.lr_scheduler import CosineLRwithWarmup
+from rrelu.utils.distributed import DistributedMetric
+from rrelu.search_bound.ranger import Ranger_bounds
 import random
 import time
 from tqdm import tqdm

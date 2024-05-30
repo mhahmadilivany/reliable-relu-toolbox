@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn as nn
-from relu_bound.bound_relu import Relu_bound
+from rrelu.relu_bound.bound_relu import Relu_bound
 import torch.nn.functional as F
 
 class bounded_hyrelu_proact(nn.Module,Relu_bound):

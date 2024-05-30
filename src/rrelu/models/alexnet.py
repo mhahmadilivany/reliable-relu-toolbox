@@ -1,7 +1,7 @@
 import torch.optim as optim
 import torchvision.transforms as transforms
 import torch.nn as nn
-from relu_bound.bound_relu import Relu_bound
+from rrelu.relu_bound.bound_relu import Relu_bound
 class AlexNet_model(nn.Module):
     def __init__(self, n_classes=10,dropout_rate=0.0):
         super(AlexNet_model, self).__init__()

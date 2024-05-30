@@ -5,15 +5,15 @@ import torch
 import copy
 import torch.nn as nn 
 import setup 
-from pytorchfi.core import FaultInjection
-from utils.distributed import DistributedMetric
+from rrelu.pytorchfi.core import FaultInjection
+from rrelu.utils.distributed import DistributedMetric
 from tqdm import tqdm
 from torchpack import distributed as dist
-from utils import load_state_dict_from_file
-from utils.metric import accuracy
-from pytorchfi.weight_error_models import bit_flip_weight_IEEE,bit_flip_weight_fixed,bit_flip_weight_int
-from relu_bound.bound_zero import bounded_relu_zero 
-from relu_bound.bound_relu import Relu_bound
+from rrelu.utils import load_state_dict_from_file
+from rrelu.utils.metric import accuracy
+from rrelu.pytorchfi.weight_error_models import bit_flip_weight_IEEE,bit_flip_weight_fixed,bit_flip_weight_int
+from rrelu.relu_bound.bound_zero import bounded_relu_zero 
+from rrelu.relu_bound.bound_relu import Relu_bound
 import random
 activation={}
 def get_activation(name):

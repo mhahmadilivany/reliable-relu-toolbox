@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from relu_bound.bound_relu import Relu_bound
+from rrelu.relu_bound.bound_relu import Relu_bound
 class bounded_relu_fitact(nn.Module,Relu_bound):
     def __init__(self,bounds,tresh=None,alpha = None,k=-20):
         super().__init__()

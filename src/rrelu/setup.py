@@ -7,8 +7,8 @@ import torch
 import torch.nn as nn
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
-from models.vgg import make_layers,cfg
-from models import (
+from rrelu.models.vgg import make_layers,cfg
+from rrelu.models import (
    Lenet,
    VGG,
    AlexNet_model,
@@ -19,7 +19,7 @@ from models import (
    VGG16_cifar100,
    ResNet50_cifar100,
 )
-from relu_bound import (
+from rrelu.relu_bound import (
     bounded_relu_zero,
     bounded_relu_tresh,
     bounded_relu_fitact,
@@ -27,7 +27,7 @@ from relu_bound import (
 
 )
 
-from search_bound import (
+from rrelu.search_bound import (
     FtClipAct_bounds,
     Ranger_bounds,
     fitact_bounds,

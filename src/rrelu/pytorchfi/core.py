@@ -7,7 +7,7 @@ from typing import List
 
 import torch
 import torch.nn as nn
-from relu_bound.bound_relu import Relu_bound
+from rrelu.relu_bound.bound_relu import Relu_bound
 
 class FaultInjection:
     def __init__(

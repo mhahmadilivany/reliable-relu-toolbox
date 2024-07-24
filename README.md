@@ -19,7 +19,7 @@ This tool is highly versatile for dependability and reliability research, with a
 RReLU includes all state-of-the-art activation restriction methods. These methods offer several advantages: they do not require retraining the entire model, avoid the complexity of fault-aware training, and are non-intrusive, meaning they do not necessitate any changes to an accelerator.
 RReLU serves as the research code accompanying the paper (ProAct: Progressive Training for Hybrid Clipped Activation Function to Enhance Resilience of DNNs), and it includes implementations of the following algorithms:
 
-* **ProAct** (the proposed algorithm) ([code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/proact.py)).
+* **ProAct** (the proposed algorithm) ([paper]([https://arxiv.org/pdf/2112.13544](https://arxiv.org/abs/2406.06313)) and ([code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/proact.py)).
 * **FitAct** ([paper](https://arxiv.org/pdf/2112.13544) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/fitact.py)).
 * **FtClipAct** ([paper](https://arxiv.org/pdf/1912.00941) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/ftclip.py)).
 * **Ranger** ([paper](https://arxiv.org/pdf/2003.13874) and [code](https://github.com/hamidmousavi0/reliable-relu-toolbox/blob/master/src/search_bound/ranger.py)).
@@ -128,8 +128,13 @@ The main source code of framework is held in `src/rrelu`, which carries `search_
 
 ## Citation
 
-View the [published paper](). If you use or reference rrelu, please cite:
+View the [published paper](https://arxiv.org/abs/2406.06313). If you use or reference rrelu, please cite:
 
 ```
-
+@article{mousavi2024proact,
+  title={ProAct: Progressive Training for Hybrid Clipped Activation Function to Enhance Resilience of DNNs},
+  author={Mousavi, Seyedhamidreza and Ahmadilivani, Mohammad Hasan and Raik, Jaan and Jenihhin, Maksim and Daneshtalab, Masoud},
+  journal={arXiv preprint arXiv:2406.06313},
+  year={2024}
+}
 ```

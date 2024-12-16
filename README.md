@@ -138,3 +138,6 @@ View the [published paper](https://arxiv.org/abs/2406.06313). If you use or refe
   year={2024}
 }
 ```
+## Acknowledgment
+
+We acknowledge the National Academic Infrastructure for Supercomputing in Sweden (NAISS), partially funded by the Swedish Research Council through grant agreement no

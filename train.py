@@ -3,30 +3,35 @@ import torch.optim as optim
 import torch
 from torch import autograd
 from typing import Dict
-from rrelu.utils.distributed import DistributedMetric
+#from rrelu.utils.distributed import DistributedMetric
 import argparse
 import copy
 import os
 import time
 import warnings
 from typing import Dict, Optional
-from rrelu.setup import build_data_loader,build_model
+from rrelu.setup import build_data_loader, build_model
 import numpy as np
 import torch
 import torch.nn as nn
 import yaml
-from torchpack import distributed as dist
+#from torchpack import distributed as dist
 from tqdm import tqdm
-from rrelu.utils.metric import accuracy,AverageMeter
+from rrelu.utils.metric import accuracy, AverageMeter
 from rrelu.utils.lr_scheduler import CosineLRwithWarmup
 from rrelu.utils.init import load_state_dict,init_modules
 from rrelu.utils import load_state_dict_from_file
-from rrelu.pytorchfi.weight_error_models import multi_weight_inj_fixed,multi_weight_inj_float,multi_weight_inj_int
+from rrelu.pytorchfi.weight_error_models import multi_weight_inj_fixed, multi_weight_inj_float, multi_weight_inj_int
 from rrelu.relu_bound.bound_relu import Relu_bound
 from rrelu.pytorchfi.core import FaultInjection
 import random 
 import numpy as np
-import matplotlib.pyplot as plt
+import dataset_utils
+import models_utils
+#import matplotlib.pyplot as plt
+
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("--path", type=str, metavar="DIR", help="run directory",default="pretrained_models/resnet50_cifar100")
@@ -61,16 +66,19 @@ def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=500,bitfl
     print(pfi_model.print_pytorchfi_layer_summary())
     test_criterion = nn.CrossEntropyLoss().cuda()
 
-    val_loss = DistributedMetric()
-    val_top1 = DistributedMetric()
-    val_top5 = DistributedMetric()
+    #val_loss = DistributedMetric()
+    #val_top1 = DistributedMetric()
+    #val_top5 = DistributedMetric()
+    val_loss = 0
+    val_top1 = 0
+    val_top5 = 0
 
     pfi_model.original_model.eval()
     with torch.no_grad():
         with tqdm(
             total= iterations,
             desc="Eval",
-            disable=not dist.is_master(),
+            #disable=not dist.is_master(),
         ) as t:
             for i in range(iterations):
                 if bitflip=='float':
@@ -80,16 +88,19 @@ def eval_fault(model:nn.Module,data_loader_dict, fault_rate,iterations=500,bitfl
                 elif bitflip =="int":
                     corrupted_model = multi_weight_inj_int (pfi_model,fault_rate)
                     # corrupted_model = multi_weight_inj_int(pfi_model,fault_rate)          
+                
                 for images, labels in data_loader_dict["val"]:
                     images, labels = images.cuda(), labels.cuda()
                     output = corrupted_model(images)
                     loss = test_criterion(output, labels)
-                    val_loss.update(loss, images.shape[0])
+                    #val_loss.update(loss, images.shape[0])
+                    val_loss += loss
                     acc1, acc5 = accuracy(output, labels, topk=(1, 5))
-                    val_top5.update(acc5[0], images.shape[0])
-                    val_top1.update(acc1[0], images.shape[0])
+                    #val_top5.update(acc5[0], images.shape[0])
+                    #val_top1.update(acc1[0], images.shape[0])
+                    val_top1 += acc1
+                    val_top5 += acc5
                     
-                ####        
                 t.set_postfix(
                     {
                         "loss": val_loss.avg.item(),
@@ -115,43 +126,50 @@ def eval(model: nn.Module, data_loader_dict) -> Dict:
 
     test_criterion = nn.CrossEntropyLoss().cuda()
 
-    val_loss = DistributedMetric()
-    val_top1 = DistributedMetric()
-    val_top5 = DistributedMetric()
+    #val_loss = DistributedMetric()
+    #val_top1 = DistributedMetric()
+    #val_top5 = DistributedMetric()
+    val_loss = 0
+    val_top1 = 0
+    val_top5 = 0
 
     model.eval()
     with torch.no_grad():
         with tqdm(
             total=len(data_loader_dict["val"]),
             desc="Eval",
-            disable=not dist.is_master(),
+            #disable=not dist.is_master(),
         ) as t:
             for images, labels in data_loader_dict["val"]:
                 images, labels = images.cuda(), labels.cuda()
                 # compute output
                 output = model(images)
                 loss = test_criterion(output, labels)
-                val_loss.update(loss, images.shape[0])
+                #val_loss.update(loss, images.shape[0])
+                val_loss += loss
                 acc1, acc5 = accuracy(output, labels, topk=(1, 5))
-                val_top5.update(acc5[0], images.shape[0])
-                val_top1.update(acc1[0], images.shape[0])
+                #val_top5.update(acc5[0], images.shape[0])
+                #val_top1.update(acc1[0], images.shape[0])
+                val_top1 += acc1
+                val_top5 += acc5
+                total_images += images.shape[0]
 
                 t.set_postfix(
                     {
-                        "loss": val_loss.avg.item(),
-                        "top1": val_top1.avg.item(),
-                        "top5": val_top5.avg.item(),
-                        "#samples": val_top1.count.item(),
+                        "loss": val_loss.item() / total_images,     #val_loss.avg.item(),
+                        "top1": val_top1.item() / total_images,     #val_top1.avg.item(),
+                        "top5": val_top5.item() / total_images,     #val_top5.avg.item(),
+                        #"#samples": images.shape[0],        #val_top1.count.item(),
                         "batch_size": images.shape[0],
-                        "img_size": images.shape[2],
+                        #"img_size": images.shape[2],
                     }
                 )
                 t.update()
 
     val_results = {
-        "val_top1": val_top1.avg.item(),
-        "val_top5": val_top5.avg.item(),
-        "val_loss": val_loss.avg.item(),
+        "val_top1": val_top1.item() / len(data_loader_dict["val"]),     #val_top1.avg.item(),
+        "val_top5": val_top5.item() / len(data_loader_dict["val"]),     #val_top5.avg.item(),
+        "val_loss": val_loss.item() / len(data_loader_dict["val"]),
     }
     return val_results
 
@@ -162,10 +180,11 @@ def train_one_epoch(
     optimizer,
     criterion,
     lr_scheduler,
-
 ) -> Dict:
-    train_loss = DistributedMetric()
-    train_top1 = DistributedMetric()
+    #train_loss = DistributedMetric()
+    #train_top1 = DistributedMetric()
+    train_loss = 0
+    train_top1 = 0
 
     model.train()
     data_provider['train'].sampler.set_epoch(epoch)
@@ -174,7 +193,7 @@ def train_one_epoch(
     with tqdm(
         total=len(data_provider["train"]),
         desc="Train Epoch #{}".format(epoch + 1),
-        disable=not dist.is_master(),
+        #disable=not dist.is_master(),
     ) as t:
         end = time.time()
         for _, (images, labels) in enumerate(data_provider['train']):
@@ -189,8 +208,10 @@ def train_one_epoch(
             optimizer.step()
             lr_scheduler.step()
 
-            train_loss.update(loss, images.shape[0])
-            train_top1.update(top1, images.shape[0])
+            #train_loss.update(loss, images.shape[0])
+            #train_top1.update(top1, images.shape[0])
+            train_loss += loss
+            train_top1 += top1
 
             t.set_postfix(
                 {
@@ -240,7 +261,7 @@ def train(
     # build optimizer
     optimizer = torch.optim.SGD(
         net_params,
-        lr=base_lr * dist.size(),
+        lr=base_lr, #* dist.size(),
         momentum=0.9,
         nesterov=True,
     )
@@ -298,9 +319,9 @@ def train(
         epoch_log = f"[{epoch + 1 - warmup_epochs}/{n_epochs}]"
         epoch_log += f"\tval_top1={val_info_dict['val_top1']:.2f} ({best_val:.2f})"
         epoch_log += f"\ttrain_top1={train_info_dict['train_top1']:.2f}\tlr={optimizer.param_groups[0]['lr']:.2E}"
-        if dist.is_master():
-            logs_writer.write(epoch_log + "\n")
-            logs_writer.flush()
+        #if dist.is_master():
+        logs_writer.write(epoch_log + "\n")
+        #logs_writer.flush()
 
         # save checkpoint
         checkpoint = {
@@ -310,18 +331,18 @@ def train(
             "optimizer": optimizer.state_dict(),
             "lr_scheduler": lr_scheduler.state_dict(),
         }
-        if dist.is_master():
+        #if dist.is_master():
+        torch.save(
+            checkpoint,
+            os.path.join(checkpoint_path, "checkpoint.pt"),
+            _use_new_zipfile_serialization=False,
+        )
+        if is_best:
             torch.save(
                 checkpoint,
-                os.path.join(checkpoint_path, "checkpoint.pt"),
+                os.path.join(checkpoint_path, "best.pt"),
                 _use_new_zipfile_serialization=False,
             )
-            if is_best:
-                torch.save(
-                    checkpoint,
-                    os.path.join(checkpoint_path, "best.pt"),
-                    _use_new_zipfile_serialization=False,
-                )
 
 def main():
     warnings.filterwarnings("ignore")
@@ -330,10 +351,11 @@ def main():
     # setup gpu and distributed training
     if args.gpu is not None:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
-    if not torch.distributed.is_initialized():
-        dist.init()
-    torch.backends.cudnn.benchmark = True
-    torch.cuda.set_device(dist.local_rank())
+    device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+    # if not torch.distributed.is_initialized():
+    #     dist.init()
+    # torch.backends.cudnn.benchmark = True
+    # torch.cuda.set_device(dist.local_rank())
 
     # setup path
     os.makedirs(args.path, exist_ok=True)
@@ -348,14 +370,14 @@ def main():
 
     # build data_loader
 
-    data_provider, n_classes= build_data_loader(
+    """data_provider, n_classes= build_data_loader(
         args.dataset,
         args.image_size,
         args.base_batch_size,
         args.n_worker,
         args.data_path,
-        dist.size(),
-        dist.rank(),
+        #dist.size(),
+        #dist.rank(),
     )
 
     # build model
@@ -363,7 +385,9 @@ def main():
         args.name,
         n_classes,
         args.dropout_rate,
-    )
+    )"""
+    data_provider, n_classes = dataset_utils.load_dataset(args.dataset, args.batch_size)
+    model = models_utils.load_model(args.model, args.dataset, device)
     print(model)
 
     # load init
@@ -381,10 +405,13 @@ def main():
     # train
     generator = torch.Generator()
     generator.manual_seed(args.manual_seed)
-    model = nn.parallel.DistributedDataParallel(
-        model.cuda(), device_ids=[dist.local_rank()]
-    )
+    #model = nn.parallel.DistributedDataParallel(
+    #    model.cuda(), device_ids=[dist.local_rank()]
+    #)
     train(model, data_provider, args.path, args.resume)
     # eval_fault(model,data_provider,1e-3)
+
+
+
 if __name__ == "__main__":
     main()
